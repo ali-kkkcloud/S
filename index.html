@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Employee Portal</title>
+    <title>Employee Management Portal</title>
     <style>
         * {
             margin: 0;
@@ -12,13 +12,14 @@
         }
 
         body {
-            font-family: Arial, sans-serif;
-            background: #f0f2f5;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: #333;
+            min-height: 100vh;
         }
 
         .container {
-            max-width: 1000px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 20px;
         }
@@ -35,15 +36,17 @@
         .login-box {
             background: white;
             padding: 40px;
-            border-radius: 10px;
-            width: 300px;
+            border-radius: 15px;
+            width: 400px;
             text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
         }
 
         .login-box h1 {
             color: #333;
             margin-bottom: 30px;
+            font-size: 28px;
         }
 
         .input-group {
@@ -53,51 +56,62 @@
 
         .input-group label {
             display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
         }
 
-        .input-group input {
+        .input-group input, .input-group select, .input-group textarea {
             width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
             font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus, .input-group select:focus, .input-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
         }
 
         .btn {
             width: 100%;
             padding: 12px;
-            background: #667eea;
+            background: linear-gradient(45deg, #667eea, #764ba2);
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 16px;
             margin-bottom: 10px;
+            transition: transform 0.2s;
         }
 
         .btn:hover {
-            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
         }
 
         .btn-demo {
-            background: #48bb78;
-            font-size: 12px;
-            padding: 8px;
+            background: linear-gradient(45deg, #48bb78, #38a169);
+            font-size: 14px;
+            padding: 10px 20px;
             margin: 5px;
             width: auto;
             display: inline-block;
-        }
-
-        .btn-demo:hover {
-            background: #38a169;
         }
 
         /* Dashboard */
         .dashboard {
             display: none;
             min-height: 100vh;
+            background: #f8fafc;
         }
 
         .dashboard.show {
@@ -106,17 +120,18 @@
 
         .header {
             background: white;
-            padding: 15px 20px;
+            padding: 20px;
             margin-bottom: 20px;
-            border-radius: 10px;
+            border-radius: 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
         }
 
         .header h1 {
-            color: #333;
+            color: #2d3748;
+            font-size: 24px;
         }
 
         .user-info {
@@ -125,22 +140,73 @@
             gap: 15px;
         }
 
+        .user-badge {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
         .logout-btn {
             background: #e53e3e;
             color: white;
             border: none;
-            padding: 8px 15px;
-            border-radius: 5px;
+            padding: 10px 20px;
+            border-radius: 8px;
             cursor: pointer;
+            transition: background 0.3s;
         }
 
         .logout-btn:hover {
             background: #c53030;
         }
 
+        /* Navigation Tabs */
+        .nav-tabs {
+            background: white;
+            border-radius: 15px;
+            padding: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+        }
+
+        .nav-tab {
+            background: transparent;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .nav-tab.active {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .nav-tab:hover:not(.active) {
+            background: #f7fafc;
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
             gap: 20px;
             margin-bottom: 20px;
         }
@@ -148,54 +214,103 @@
         .card {
             background: white;
             padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
         }
 
-        .card h2 {
-            color: #333;
+        .card:hover {
+            transform: translateY(-2px);
+        }
+
+        .card h2, .card h3 {
+            color: #2d3748;
             margin-bottom: 20px;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 10px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        /* Attendance Card */
-        .attendance-card .status {
+        .card-icon {
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
             text-align: center;
-            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
         }
 
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        /* Status Badges */
         .status-badge {
             display: inline-block;
-            padding: 5px 15px;
+            padding: 6px 12px;
             border-radius: 20px;
-            font-weight: bold;
-            font-size: 14px;
+            font-weight: 600;
+            font-size: 12px;
         }
 
         .status-working { background: #c6f6d5; color: #22543d; }
         .status-break { background: #fef5e7; color: #975a16; }
         .status-out { background: #fed7d7; color: #742a2a; }
+        .status-present { background: #c6f6d5; color: #22543d; }
+        .status-absent { background: #fed7d7; color: #742a2a; }
 
+        /* Time Display */
         .time-display {
-            display: flex;
-            justify-content: space-around;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 15px;
             margin-bottom: 20px;
             text-align: center;
         }
 
         .time-item h4 {
-            color: #666;
+            color: #718096;
             font-size: 12px;
             margin-bottom: 5px;
+            font-weight: 600;
         }
 
         .time-item span {
             font-size: 18px;
             font-weight: bold;
-            color: #333;
+            color: #2d3748;
         }
 
+        /* Action Buttons */
         .action-buttons {
             display: flex;
             gap: 10px;
@@ -204,87 +319,127 @@
 
         .action-buttons .btn {
             flex: 1;
-            min-width: 80px;
-            font-size: 12px;
-            padding: 8px;
+            min-width: 120px;
+            font-size: 14px;
+            padding: 10px;
+            margin-bottom: 0;
         }
 
-        .btn-success { background: #48bb78; }
-        .btn-success:hover { background: #38a169; }
-        .btn-danger { background: #e53e3e; }
-        .btn-danger:hover { background: #c53030; }
-        .btn-warning { background: #ed8936; }
-        .btn-warning:hover { background: #dd6b20; }
+        .btn-success { 
+            background: linear-gradient(45deg, #48bb78, #38a169);
+        }
+        .btn-danger { 
+            background: linear-gradient(45deg, #e53e3e, #c53030);
+        }
+        .btn-warning { 
+            background: linear-gradient(45deg, #ed8936, #dd6b20);
+        }
+        .btn-info {
+            background: linear-gradient(45deg, #4299e1, #3182ce);
+        }
 
-        /* Tasks Card */
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            margin: 2px;
+        }
+
+        /* Tables */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .data-table th {
+            background: #f7fafc;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .data-table tr:hover {
+            background: #f7fafc;
+        }
+
+        /* Task Items */
         .task-list {
-            max-height: 300px;
+            max-height: 400px;
             overflow-y: auto;
         }
 
         .task-item {
-            border: 1px solid #e2e8f0;
-            border-radius: 5px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
             padding: 15px;
+            margin-bottom: 15px;
+            transition: border-color 0.3s;
+        }
+
+        .task-item:hover {
+            border-color: #667eea;
+        }
+
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
             margin-bottom: 10px;
         }
 
-        .task-item h4 {
-            color: #333;
-            margin-bottom: 8px;
-        }
-
-        .task-item p {
-            color: #666;
-            font-size: 14px;
-            margin-bottom: 8px;
+        .task-title {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 5px;
         }
 
         .task-meta {
             display: flex;
-            justify-content: space-between;
+            gap: 15px;
             font-size: 12px;
+            color: #718096;
+            flex-wrap: wrap;
+            align-items: center;
         }
 
         .priority-high { color: #e53e3e; font-weight: bold; }
         .priority-medium { color: #ed8936; font-weight: bold; }
         .priority-low { color: #48bb78; font-weight: bold; }
 
-        .add-task-btn {
-            background: #667eea;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            cursor: pointer;
+        /* Employee Cards */
+        .employee-card {
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 20px;
             margin-bottom: 15px;
-            width: 100%;
-        }
-
-        .add-task-btn:hover {
-            background: #5a67d8;
-        }
-
-        /* Profile Card */
-        .profile-info {
-            display: grid;
-            gap: 10px;
-        }
-
-        .info-row {
             display: flex;
             justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid #e2e8f0;
+            align-items: center;
         }
 
-        .info-label {
-            font-weight: bold;
-            color: #4a5568;
-        }
-
-        .info-value {
+        .employee-info h4 {
             color: #2d3748;
+            margin-bottom: 5px;
+        }
+
+        .employee-info p {
+            color: #718096;
+            font-size: 14px;
+        }
+
+        .employee-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
         }
 
         /* Modal */
@@ -297,6 +452,7 @@
             height: 100%;
             background: rgba(0,0,0,0.5);
             z-index: 1000;
+            backdrop-filter: blur(5px);
         }
 
         .modal.show {
@@ -308,9 +464,11 @@
         .modal-content {
             background: white;
             padding: 30px;
-            border-radius: 10px;
+            border-radius: 15px;
             width: 90%;
-            max-width: 400px;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
         }
 
         .modal-header {
@@ -320,37 +478,169 @@
             margin-bottom: 20px;
         }
 
+        .modal-header h3 {
+            color: #2d3748;
+        }
+
         .close {
             background: none;
             border: none;
             font-size: 24px;
             cursor: pointer;
-            color: #666;
+            color: #718096;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
         }
 
-        /* Notification */
+        .close:hover {
+            background: #f7fafc;
+        }
+
+        /* Form Styling */
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .form-row .input-group {
+            margin-bottom: 15px;
+        }
+
+        /* Notifications */
         .notification {
             position: fixed;
             top: 20px;
             right: 20px;
             padding: 15px 20px;
-            border-radius: 5px;
+            border-radius: 10px;
             color: white;
             z-index: 1001;
             display: none;
+            max-width: 300px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
         }
 
-        .notification.success { background: #48bb78; }
-        .notification.error { background: #e53e3e; }
-        .notification.info { background: #4299e1; }
+        .notification.success { 
+            background: linear-gradient(45deg, #48bb78, #38a169);
+        }
+        .notification.error { 
+            background: linear-gradient(45deg, #e53e3e, #c53030);
+        }
+        .notification.info { 
+            background: linear-gradient(45deg, #4299e1, #3182ce);
+        }
 
-        /* Responsive */
+        /* Live Status Indicator */
+        .live-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            color: #48bb78;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: #48bb78;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        /* Loading Spinner */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive Design */
         @media (max-width: 768px) {
-            .container { padding: 10px; }
-            .grid { grid-template-columns: 1fr; }
-            .header { flex-direction: column; gap: 10px; text-align: center; }
-            .action-buttons { flex-direction: column; }
-            .time-display { flex-direction: column; gap: 10px; }
+            .container { 
+                padding: 10px; 
+            }
+            
+            .grid { 
+                grid-template-columns: 1fr; 
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .header { 
+                flex-direction: column; 
+                gap: 15px; 
+                text-align: center; 
+            }
+            
+            .nav-tabs {
+                flex-wrap: wrap;
+            }
+            
+            .action-buttons { 
+                flex-direction: column; 
+            }
+            
+            .time-display { 
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .employee-card {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .modal-content {
+                margin: 10px;
+                width: calc(100% - 20px);
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .task-header {
+                flex-direction: column;
+                align-items: start;
+                gap: 10px;
+            }
+
+            .task-meta {
+                flex-direction: column;
+                align-items: start;
+                gap: 5px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .login-box {
+                width: 90%;
+                padding: 30px 20px;
+            }
         }
     </style>
 </head>
@@ -361,23 +651,26 @@
     <!-- Login Page -->
     <div id="loginPage" class="login-page">
         <div class="login-box">
-            <h1>Employee Portal</h1>
+            <h1>🏢 Employee Portal</h1>
             <form id="loginForm">
                 <div class="input-group">
-                    <label>Email</label>
-                    <input type="email" id="email" required>
+                    <label>📧 Email</label>
+                    <input type="email" id="email" required placeholder="Enter your email">
                 </div>
                 <div class="input-group">
-                    <label>Password</label>
-                    <input type="password" id="password" required>
+                    <label>🔐 Password</label>
+                    <input type="password" id="password" required placeholder="Enter your password">
                 </div>
-                <button type="submit" class="btn">Login</button>
+                <button type="submit" class="btn">
+                    <span id="loginBtnText">Login</span>
+                    <span id="loginLoader" class="loading" style="display: none;"></span>
+                </button>
             </form>
             
             <div style="margin-top: 20px;">
-                <p style="margin-bottom: 10px; color: #666;">Quick Demo:</p>
-                <button class="btn btn-demo" onclick="demoLogin('admin')">Admin</button>
-                <button class="btn btn-demo" onclick="demoLogin('employee')">Employee</button>
+                <p style="margin-bottom: 10px; color: #666;">Quick Demo Access:</p>
+                <button class="btn btn-demo" onclick="demoLogin('admin')">👨‍💼 Admin Demo</button>
+                <button class="btn btn-demo" onclick="demoLogin('employee')">👤 Employee Demo</button>
             </div>
         </div>
     </div>
@@ -387,113 +680,351 @@
         <div class="container">
             <!-- Header -->
             <div class="header">
-                <h1>Welcome, <span id="userName">Employee</span></h1>
+                <div>
+                    <h1>Welcome, <span id="userName">User</span></h1>
+                    <div class="live-indicator">
+                        <div class="live-dot"></div>
+                        Live Dashboard
+                    </div>
+                </div>
                 <div class="user-info">
+                    <span class="user-badge" id="userRole">Employee</span>
                     <span id="userEmail">user@example.com</span>
                     <button class="logout-btn" onclick="logout()">Logout</button>
                 </div>
             </div>
 
-            <!-- Main Grid -->
-            <div class="grid">
-                <!-- Attendance Card -->
-                <div class="card attendance-card">
-                    <h2>Attendance</h2>
-                    
-                    <div class="status">
-                        <span id="attendanceStatus" class="status-badge status-out">Not Checked In</span>
+            <!-- Navigation Tabs -->
+            <div class="nav-tabs" id="navTabs">
+                <!-- Tabs will be dynamically generated based on user role -->
+            </div>
+
+            <!-- Tab Contents -->
+            
+            <!-- Employee Dashboard Tab -->
+            <div id="employeeDashboard" class="tab-content">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="todayHours">0h 0m</div>
+                        <div class="stat-label">Today's Hours</div>
                     </div>
-                    
-                    <div class="time-display">
-                        <div class="time-item">
-                            <h4>Check In</h4>
-                            <span id="checkInTime">--:--</span>
-                        </div>
-                        <div class="time-item">
-                            <h4>Working</h4>
-                            <span id="workingTime">0h 0m</span>
-                        </div>
-                        <div class="time-item">
-                            <h4>Check Out</h4>
-                            <span id="checkOutTime">--:--</span>
-                        </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="thisWeekHours">0h 0m</div>
+                        <div class="stat-label">This Week</div>
                     </div>
-                    
-                    <div class="action-buttons">
-                        <button id="checkInBtn" class="btn btn-success" onclick="checkIn()">Check In</button>
-                        <button id="checkOutBtn" class="btn btn-danger" onclick="checkOut()" disabled>Check Out</button>
-                        <button id="breakBtn" class="btn btn-warning" onclick="toggleBreak()" disabled>Break</button>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalTasks">0</div>
+                        <div class="stat-label">Active Tasks</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="leaveBalance">15</div>
+                        <div class="stat-label">Leave Balance</div>
                     </div>
                 </div>
 
-                <!-- Tasks Card -->
-                <div class="card">
-                    <h2>My Tasks</h2>
-                    <button class="add-task-btn" onclick="openModal()">+ Add Task</button>
-                    <div id="taskList" class="task-list">
-                        <!-- Tasks will be loaded here -->
+                <div class="grid">
+                    <!-- Attendance Card -->
+                    <div class="card">
+                        <h2>
+                            <div class="card-icon">⏰</div>
+                            Attendance
+                        </h2>
+                        
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <span id="attendanceStatus" class="status-badge status-out">Not Checked In</span>
+                        </div>
+                        
+                        <div class="time-display">
+                            <div class="time-item">
+                                <h4>Check In</h4>
+                                <span id="checkInTime">--:--</span>
+                            </div>
+                            <div class="time-item">
+                                <h4>Working</h4>
+                                <span id="workingTime">0h 0m</span>
+                            </div>
+                            <div class="time-item">
+                                <h4>Break</h4>
+                                <span id="breakTime">0h 0m</span>
+                            </div>
+                            <div class="time-item">
+                                <h4>Check Out</h4>
+                                <span id="checkOutTime">--:--</span>
+                            </div>
+                        </div>
+                        
+                        <div class="action-buttons">
+                            <button id="checkInBtn" class="btn btn-success" onclick="checkIn()">Check In</button>
+                            <button id="checkOutBtn" class="btn btn-danger" onclick="checkOut()" disabled>Check Out</button>
+                            <button id="breakBtn" class="btn btn-warning" onclick="toggleBreak()" disabled>Break</button>
+                        </div>
+                    </div>
+
+                    <!-- My Tasks Card -->
+                    <div class="card">
+                        <h2>
+                            <div class="card-icon">📋</div>
+                            My Tasks
+                        </h2>
+                        <div id="myTaskList" class="task-list">
+                            <!-- Tasks will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- My Schedule Card -->
+                    <div class="card">
+                        <h2>
+                            <div class="card-icon">📅</div>
+                            My Schedule
+                        </h2>
+                        <div id="mySchedule">
+                            <!-- Schedule will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Dashboard Tab -->
+            <div id="adminDashboard" class="tab-content">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalEmployees">0</div>
+                        <div class="stat-label">Total Employees</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="presentToday">0</div>
+                        <div class="stat-label">Present Today</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="absentToday">0</div>
+                        <div class="stat-label">Absent Today</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="onBreak">0</div>
+                        <div class="stat-label">On Break</div>
                     </div>
                 </div>
 
-                <!-- Profile Card -->
-                <div class="card">
-                    <h2>Profile</h2>
-                    <div class="profile-info">
-                        <div class="info-row">
-                            <span class="info-label">Name:</span>
-                            <span class="info-value" id="profileName">John Doe</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Email:</span>
-                            <span class="info-value" id="profileEmail">john@example.com</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Role:</span>
-                            <span class="info-value" id="profileRole">Employee</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Department:</span>
-                            <span class="info-value" id="profileDept">IT</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Today's Hours:</span>
-                            <span class="info-value" id="todayHours">0h 0m</span>
+                <div class="grid">
+                    <!-- Live Attendance Card -->
+                    <div class="card">
+                        <h2>
+                            <div class="card-icon">👥</div>
+                            Live Attendance
+                        </h2>
+                        <div id="liveAttendance">
+                            <!-- Live attendance will be loaded here -->
                         </div>
                     </div>
+
+                    <!-- Quick Actions Card -->
+                    <div class="card">
+                        <h2>
+                            <div class="card-icon">⚡</div>
+                            Quick Actions
+                        </h2>
+                        <div style="display: grid; gap: 10px;">
+                            <button class="btn btn-info" onclick="openAddEmployeeModal()">➕ Add Employee</button>
+                            <button class="btn btn-info" onclick="openAddTaskModal()">📝 Assign Task</button>
+                            <button class="btn btn-info" onclick="openCreateRosterModal()">📅 Create Roster</button>
+                            <button class="btn btn-info" onclick="exportAttendance()">📊 Export Reports</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Employee Management Tab -->
+            <div id="employeeManagement" class="tab-content">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                    <h2>👥 Employee Management</h2>
+                    <button class="btn btn-info" onclick="openAddEmployeeModal()">➕ Add Employee</button>
+                </div>
+                <div id="employeeList">
+                    <!-- Employee list will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Attendance Reports Tab -->
+            <div id="attendanceReports" class="tab-content">
+                <div class="card">
+                    <h2>
+                        <div class="card-icon">📊</div>
+                        Attendance Reports
+                    </h2>
+                    <div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                        <label>Select Month:</label>
+                        <input type="month" id="reportMonth" value="" onchange="loadAttendanceReport()" style="padding: 8px; border-radius: 5px; border: 1px solid #ccc;">
+                        <button class="btn btn-info" onclick="exportAttendanceReport()">📥 Export</button>
+                    </div>
+                    <div id="attendanceReportData">
+                        <!-- Report data will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Task Management Tab -->
+            <div id="taskManagement" class="tab-content">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                    <h2>📋 Task Management</h2>
+                    <button class="btn btn-info" onclick="openAddTaskModal()">➕ Assign Task</button>
+                </div>
+                <div id="allTasksList">
+                    <!-- All tasks will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Leave Management Tab -->
+            <div id="leaveManagement" class="tab-content">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                    <h2>🏖️ Leave Management</h2>
+                    <button class="btn btn-info" onclick="openApplyLeaveModal()">➕ Apply Leave</button>
+                </div>
+                <div id="leaveRequestsList">
+                    <!-- Leave requests will be loaded here -->
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Add Task Modal -->
-    <div id="taskModal" class="modal">
+    <!-- Add Employee Modal -->
+    <div id="addEmployeeModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Add New Task</h3>
-                <button class="close" onclick="closeModal()">&times;</button>
+                <h3>➕ Add New Employee</h3>
+                <button class="close" onclick="closeModal('addEmployeeModal')">&times;</button>
             </div>
-            <form id="taskForm">
-                <div class="input-group">
-                    <label>Task Title</label>
-                    <input type="text" id="taskTitle" required>
+            <form id="addEmployeeForm">
+                <div class="form-row">
+                    <div class="input-group">
+                        <label>👤 Full Name</label>
+                        <input type="text" id="empName" required placeholder="John Doe">
+                    </div>
+                    <div class="input-group">
+                        <label>📧 Email</label>
+                        <input type="email" id="empEmail" required placeholder="john@company.com">
+                    </div>
                 </div>
-                <div class="input-group">
-                    <label>Description</label>
-                    <input type="text" id="taskDesc">
+                <div class="form-row">
+                    <div class="input-group">
+                        <label>🔐 Password</label>
+                        <input type="password" id="empPassword" required placeholder="Min 6 characters">
+                    </div>
+                    <div class="input-group">
+                        <label>📞 Phone</label>
+                        <input type="tel" id="empPhone" required placeholder="+91 9876543210">
+                    </div>
                 </div>
+                <div class="form-row">
+                    <div class="input-group">
+                        <label>🏢 Department</label>
+                        <select id="empDepartment" required>
+                            <option value="">Select Department</option>
+                            <option value="IT">IT</option>
+                            <option value="HR">HR</option>
+                            <option value="Finance">Finance</option>
+                            <option value="Marketing">Marketing</option>
+                            <option value="Operations">Operations</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>👑 Role</label>
+                        <select id="empRole" required>
+                            <option value="employee">Employee</option>
+                            <option value="admin">Admin</option>
+                            <option value="manager">Manager</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="input-group">
+                        <label>💰 Salary</label>
+                        <input type="number" id="empSalary" required placeholder="50000">
+                    </div>
+                    <div class="input-group">
+                        <label>📅 Join Date</label>
+                        <input type="date" id="empJoinDate" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn">Add Employee</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Task Modal -->
+    <div id="addTaskModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📝 Assign New Task</h3>
+                <button class="close" onclick="closeModal('addTaskModal')">&times;</button>
+            </div>
+            <form id="addTaskForm">
                 <div class="input-group">
-                    <label>Priority</label>
-                    <select id="taskPriority">
-                        <option value="low">Low</option>
-                        <option value="medium" selected>Medium</option>
-                        <option value="high">High</option>
+                    <label>👤 Assign To</label>
+                    <select id="taskAssignTo" required>
+                        <option value="">Select Employee</option>
+                        <!-- Options will be loaded dynamically -->
                     </select>
                 </div>
                 <div class="input-group">
-                    <label>Due Date</label>
-                    <input type="date" id="taskDue">
+                    <label>📋 Task Title</label>
+                    <input type="text" id="taskTitle" required placeholder="Complete project documentation">
                 </div>
-                <button type="submit" class="btn">Add Task</button>
+                <div class="input-group">
+                    <label>📝 Description</label>
+                    <textarea id="taskDescription" rows="3" placeholder="Detailed task description..."></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="input-group">
+                        <label>⚡ Priority</label>
+                        <select id="taskPriority" required>
+                            <option value="low">🟢 Low</option>
+                            <option value="medium" selected>🟡 Medium</option>
+                            <option value="high">🔴 High</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>📅 Due Date</label>
+                        <input type="date" id="taskDueDate" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn">Assign Task</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Apply Leave Modal -->
+    <div id="applyLeaveModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🏖️ Apply for Leave</h3>
+                <button class="close" onclick="closeModal('applyLeaveModal')">&times;</button>
+            </div>
+            <form id="applyLeaveForm">
+                <div class="form-row">
+                    <div class="input-group">
+                        <label>📅 From Date</label>
+                        <input type="date" id="leaveFromDate" required>
+                    </div>
+                    <div class="input-group">
+                        <label>📅 To Date</label>
+                        <input type="date" id="leaveToDate" required>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>🏷️ Leave Type</label>
+                    <select id="leaveType" required>
+                        <option value="">Select Leave Type</option>
+                        <option value="casual">Casual Leave</option>
+                        <option value="sick">Sick Leave</option>
+                        <option value="earned">Earned Leave</option>
+                        <option value="emergency">Emergency Leave</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>📝 Reason</label>
+                    <textarea id="leaveReason" rows="3" required placeholder="Reason for leave..."></textarea>
+                </div>
+                <button type="submit" class="btn">Apply for Leave</button>
             </form>
         </div>
     </div>
@@ -515,11 +1046,32 @@
             breakStart: null,
             totalBreakTime: 0
         };
+        let realtimeSubscriptions = [];
 
         // Demo users
         const demoUsers = {
-            admin: { id: 'admin_1', name: 'Admin User', email: 'admin@demo.com', role: 'admin', department: 'Management', isDemo: true },
-            employee: { id: 'emp_1', name: 'John Doe', email: 'john@demo.com', role: 'employee', department: 'IT', isDemo: true }
+            admin: { 
+                id: 'admin_demo', 
+                name: 'Admin User', 
+                email: 'admin@demo.com', 
+                role: 'admin', 
+                department: 'Management', 
+                phone: '+91 9876543210',
+                salary: 100000,
+                join_date: '2023-01-01',
+                isDemo: true 
+            },
+            employee: { 
+                id: 'emp_demo', 
+                name: 'John Doe', 
+                email: 'john@demo.com', 
+                role: 'employee', 
+                department: 'IT', 
+                phone: '+91 9876543211',
+                salary: 50000,
+                join_date: '2023-06-01',
+                isDemo: true 
+            }
         };
 
         // Initialize
@@ -527,11 +1079,27 @@
             checkAuth();
             setupEventListeners();
             setInterval(updateWorkingTime, 1000);
+            setInterval(updateLiveData, 30000); // Update every 30 seconds
         });
 
         function setupEventListeners() {
             document.getElementById('loginForm').addEventListener('submit', handleLogin);
-            document.getElementById('taskForm').addEventListener('submit', handleAddTask);
+            document.getElementById('addEmployeeForm').addEventListener('submit', handleAddEmployee);
+            document.getElementById('addTaskForm').addEventListener('submit', handleAddTask);
+            document.getElementById('applyLeaveForm').addEventListener('submit', handleApplyLeave);
+
+            // Set default dates
+            const today = new Date().toISOString().split('T')[0];
+            const currentMonth = new Date().toISOString().substring(0, 7);
+            
+            document.getElementById('empJoinDate').value = today;
+            document.getElementById('taskDueDate').value = today;
+            document.getElementById('leaveFromDate').value = today;
+            document.getElementById('leaveToDate').value = today;
+            document.getElementById('reportMonth').value = currentMonth;
+
+            // Form validations
+            setupFormValidations();
         }
 
         function checkAuth() {
@@ -539,9 +1107,10 @@
             if (saved) {
                 currentUser = JSON.parse(saved);
                 showDashboard();
+                setupNavigation();
                 loadUserData();
-                loadAttendance();
-                loadTasks();
+                loadDashboardData();
+                setupRealtimeSubscriptions();
             } else {
                 showLogin();
             }
@@ -550,6 +1119,7 @@
         function showLogin() {
             document.getElementById('loginPage').style.display = 'flex';
             document.getElementById('dashboard').classList.remove('show');
+            cleanupSubscriptions();
         }
 
         function showDashboard() {
@@ -564,14 +1134,79 @@
             notification.style.display = 'block';
             setTimeout(() => {
                 notification.style.display = 'none';
-            }, 3000);
+            }, 4000);
         }
 
-        // Authentication
+        function setupNavigation() {
+            const navTabs = document.getElementById('navTabs');
+            const isAdmin = currentUser.role === 'admin';
+            
+            const tabs = [
+                { id: 'employeeDashboard', label: '🏠 Dashboard', show: true },
+                { id: 'employeeManagement', label: '👥 Employees', show: isAdmin },
+                { id: 'attendanceReports', label: '📊 Reports', show: isAdmin },
+                { id: 'taskManagement', label: '📋 Tasks', show: isAdmin },
+                { id: 'leaveManagement', label: '🏖️ Leave', show: true }
+            ];
+
+            navTabs.innerHTML = tabs
+                .filter(tab => tab.show)
+                .map((tab, index) => 
+                    `<button class="nav-tab ${index === 0 ? 'active' : ''}" onclick="switchTab('${tab.id}')">${tab.label}</button>`
+                ).join('');
+
+            // Show first tab
+            switchTab('employeeDashboard');
+        }
+
+        function switchTab(tabId) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from nav tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabId).classList.add('active');
+            
+            // Add active class to clicked nav tab
+            event.target.classList.add('active');
+            
+            // Load tab-specific data
+            loadTabData(tabId);
+        }
+
+        function loadTabData(tabId) {
+            switch(tabId) {
+                case 'employeeDashboard':
+                    loadEmployeeDashboard();
+                    break;
+                case 'employeeManagement':
+                    loadEmployeeManagement();
+                    break;
+                case 'attendanceReports':
+                    loadAttendanceReport();
+                    break;
+                case 'taskManagement':
+                    loadTaskManagement();
+                    break;
+                case 'leaveManagement':
+                    loadLeaveManagement();
+                    break;
+            }
+        }
+
+        // Authentication Functions
         async function handleLogin(e) {
             e.preventDefault();
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
+            
+            showLoading('loginBtnText', 'loginLoader');
             
             try {
                 const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -591,31 +1226,38 @@
                         email: profile.email,
                         role: profile.role,
                         department: profile.department,
+                        phone: profile.phone,
+                        salary: profile.salary,
+                        join_date: profile.join_date,
                         isDemo: false
                     };
                     localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                    showNotification('Login successful!', 'success');
+                    showNotification('Login successful! 🎉', 'success');
                     showDashboard();
+                    setupNavigation();
                     loadUserData();
-                    loadAttendance();
-                    loadTasks();
+                    loadDashboardData();
+                    setupRealtimeSubscriptions();
                 } else {
                     throw new Error('User profile not found');
                 }
             } catch (error) {
                 console.error('Login error:', error);
-                showNotification('Login failed. Try demo login.', 'error');
+                showNotification('Login failed. Please try demo login. ❌', 'error');
+            } finally {
+                hideLoading('loginBtnText', 'loginLoader');
             }
         }
 
         function demoLogin(type) {
             currentUser = demoUsers[type];
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
-            showNotification(`Welcome ${currentUser.name}!`, 'success');
+            showNotification(`Welcome ${currentUser.name}! 🎉`, 'success');
             showDashboard();
+            setupNavigation();
             loadUserData();
-            loadAttendance();
-            loadTasks();
+            loadDashboardData();
+            setupRealtimeSubscriptions();
         }
 
         function logout() {
@@ -628,22 +1270,111 @@
                 breakStart: null,
                 totalBreakTime: 0
             };
-            showNotification('Logged out', 'info');
+            cleanupSubscriptions();
+            showNotification('Logged out successfully! 👋', 'info');
             showLogin();
         }
 
         function loadUserData() {
             document.getElementById('userName').textContent = currentUser.name;
             document.getElementById('userEmail').textContent = currentUser.email;
-            document.getElementById('profileName').textContent = currentUser.name;
-            document.getElementById('profileEmail').textContent = currentUser.email;
-            document.getElementById('profileRole').textContent = currentUser.role;
-            document.getElementById('profileDept').textContent = currentUser.department;
+            document.getElementById('userRole').textContent = currentUser.role.toUpperCase();
+        }
+
+        function loadDashboardData() {
+            loadAttendance();
+            loadMyTasks();
+            loadMySchedule();
+            
+            if (currentUser.role === 'admin') {
+                loadAdminStats();
+                loadLiveAttendance();
+            }
+        }
+
+        // Real-time Subscriptions
+        function setupRealtimeSubscriptions() {
+            cleanupSubscriptions();
+            
+            if (currentUser.isDemo) return; // Skip for demo users
+            
+            // Subscribe to attendance changes
+            const attendanceSubscription = supabase
+                .channel('attendance-changes')
+                .on('postgres_changes', {
+                    event: '*',
+                    schema: 'public',
+                    table: 'attendance'
+                }, handleAttendanceChange)
+                .subscribe();
+            
+            realtimeSubscriptions.push(attendanceSubscription);
+
+            // Subscribe to task changes
+            const taskSubscription = supabase
+                .channel('task-changes')
+                .on('postgres_changes', {
+                    event: '*',
+                    schema: 'public',
+                    table: 'tasks'
+                }, handleTaskChange)
+                .subscribe();
+            
+            realtimeSubscriptions.push(taskSubscription);
+
+            // Subscribe to employee changes (admin only)
+            if (currentUser.role === 'admin') {
+                const employeeSubscription = supabase
+                    .channel('employee-changes')
+                    .on('postgres_changes', {
+                        event: '*',
+                        schema: 'public',
+                        table: 'employees'
+                    }, handleEmployeeChange)
+                    .subscribe();
+                
+                realtimeSubscriptions.push(employeeSubscription);
+            }
+        }
+
+        function cleanupSubscriptions() {
+            realtimeSubscriptions.forEach(subscription => {
+                subscription.unsubscribe();
+            });
+            realtimeSubscriptions = [];
+        }
+
+        function handleAttendanceChange(payload) {
+            console.log('Attendance change:', payload);
+            if (currentUser.role === 'admin') {
+                loadAdminStats();
+                loadLiveAttendance();
+            }
+            if (payload.new && payload.new.employee_id === currentUser.id) {
+                loadAttendance();
+            }
+        }
+
+        function handleTaskChange(payload) {
+            console.log('Task change:', payload);
+            loadMyTasks();
+            if (currentUser.role === 'admin') {
+                loadTaskManagement();
+            }
+        }
+
+        function handleEmployeeChange(payload) {
+            console.log('Employee change:', payload);
+            if (currentUser.role === 'admin') {
+                loadEmployeeManagement();
+                loadAdminStats();
+            }
         }
 
         // Attendance Functions
         function loadAttendance() {
-            const saved = localStorage.getItem(`attendance_${currentUser.id}`);
+            const today = new Date().toISOString().split('T')[0];
+            const saved = localStorage.getItem(`attendance_${currentUser.id}_${today}`);
             if (saved) {
                 attendanceData = JSON.parse(saved);
                 if (attendanceData.checkInTime) {
@@ -657,7 +1388,8 @@
         }
 
         function saveAttendance() {
-            localStorage.setItem(`attendance_${currentUser.id}`, JSON.stringify(attendanceData));
+            const today = new Date().toISOString().split('T')[0];
+            localStorage.setItem(`attendance_${currentUser.id}_${today}`, JSON.stringify(attendanceData));
         }
 
         async function checkIn() {
@@ -676,10 +1408,10 @@
                 
                 saveAttendance();
                 updateAttendanceUI();
-                showNotification('Checked in successfully!', 'success');
+                showNotification('Checked in successfully! ✅', 'success');
             } catch (error) {
                 console.error('Check-in error:', error);
-                showNotification('Check-in failed', 'error');
+                showNotification('Check-in failed ❌', 'error');
             }
         }
 
@@ -710,10 +1442,10 @@
                 
                 saveAttendance();
                 updateAttendanceUI();
-                showNotification('Checked out successfully!', 'success');
+                showNotification('Checked out successfully! 🏁', 'success');
             } catch (error) {
                 console.error('Check-out error:', error);
-                showNotification('Check-out failed', 'error');
+                showNotification('Check-out failed ❌', 'error');
             }
         }
 
@@ -726,12 +1458,12 @@
                 attendanceData.totalBreakTime += breakDuration;
                 attendanceData.isOnBreak = false;
                 attendanceData.breakStart = null;
-                showNotification('Break ended', 'info');
+                showNotification('Break ended ⏰', 'info');
             } else {
                 // Start break
                 attendanceData.isOnBreak = true;
                 attendanceData.breakStart = new Date();
-                showNotification('Break started', 'info');
+                showNotification('Break started ☕', 'info');
             }
             
             saveAttendance();
@@ -744,6 +1476,7 @@
             const breakBtn = document.getElementById('breakBtn');
             const status = document.getElementById('attendanceStatus');
             const checkInTimeEl = document.getElementById('checkInTime');
+            const checkOutTimeEl = document.getElementById('checkOutTime');
             
             // Update buttons
             checkInBtn.disabled = attendanceData.isCheckedIn;
@@ -751,7 +1484,7 @@
             breakBtn.disabled = !attendanceData.isCheckedIn;
             
             if (attendanceData.isCheckedIn) {
-                checkInBtn.textContent = 'Checked In';
+                checkInBtn.textContent = '✅ Checked In';
                 breakBtn.textContent = attendanceData.isOnBreak ? 'End Break' : 'Start Break';
             } else {
                 checkInBtn.textContent = 'Check In';
@@ -762,14 +1495,14 @@
             if (attendanceData.isCheckedIn) {
                 if (attendanceData.isOnBreak) {
                     status.className = 'status-badge status-break';
-                    status.textContent = 'On Break';
+                    status.textContent = '☕ On Break';
                 } else {
                     status.className = 'status-badge status-working';
-                    status.textContent = 'Working';
+                    status.textContent = '💼 Working';
                 }
             } else {
                 status.className = 'status-badge status-out';
-                status.textContent = 'Not Checked In';
+                status.textContent = '🏠 Not Checked In';
             }
             
             // Update times
@@ -778,6 +1511,8 @@
             } else {
                 checkInTimeEl.textContent = '--:--';
             }
+            
+            checkOutTimeEl.textContent = '--:--';
         }
 
         function updateWorkingTime() {
@@ -793,125 +1528,1103 @@
                 const hours = Math.floor(workingMs / (1000 * 60 * 60));
                 const minutes = Math.floor((workingMs % (1000 * 60 * 60)) / (1000 * 60));
                 
-                document.getElementById('workingTime').textContent = `${hours}h ${minutes}m`;
-                document.getElementById('todayHours').textContent = `${hours}h ${minutes}m`;
+                const timeStr = `${hours}h ${minutes}m`;
+                document.getElementById('workingTime').textContent = timeStr;
+                document.getElementById('todayHours').textContent = timeStr;
+                
+                // Update break time
+                let totalBreakMs = attendanceData.totalBreakTime;
+                if (attendanceData.isOnBreak && attendanceData.breakStart) {
+                    totalBreakMs += (now - attendanceData.breakStart);
+                }
+                const breakHours = Math.floor(totalBreakMs / (1000 * 60 * 60));
+                const breakMinutes = Math.floor((totalBreakMs % (1000 * 60 * 60)) / (1000 * 60));
+                document.getElementById('breakTime').textContent = `${breakHours}h ${breakMinutes}m`;
             } else {
                 document.getElementById('workingTime').textContent = '0h 0m';
                 document.getElementById('todayHours').textContent = '0h 0m';
+                document.getElementById('breakTime').textContent = '0h 0m';
             }
         }
 
-        // Tasks Functions
-        async function loadTasks() {
+        // Employee Dashboard Functions
+        async function loadEmployeeDashboard() {
             try {
-                let tasks = [];
+                // Load this week hours
+                const weekStart = new Date();
+                weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+                const weekEnd = new Date(weekStart);
+                weekEnd.setDate(weekEnd.getDate() + 6);
                 
+                if (!currentUser.isDemo) {
+                    const { data: weekAttendance } = await supabase
+                        .from('attendance')
+                        .select('total_hours')
+                        .eq('employee_id', currentUser.id)
+                        .gte('date', weekStart.toISOString().split('T')[0])
+                        .lte('date', weekEnd.toISOString().split('T')[0]);
+                    
+                    const totalWeekHours = weekAttendance?.reduce((sum, record) => sum + (record.total_hours || 0), 0) || 0;
+                    document.getElementById('thisWeekHours').textContent = `${Math.floor(totalWeekHours)}h ${Math.floor((totalWeekHours % 1) * 60)}m`;
+                } else {
+                    document.getElementById('thisWeekHours').textContent = '32h 15m';
+                }
+                
+                // Load active tasks count
+                await loadMyTasks();
+                
+            } catch (error) {
+                console.error('Error loading employee dashboard:', error);
+            }
+        }
+
+        // Admin Functions
+        async function loadAdminStats() {
+            try {
                 if (currentUser.isDemo) {
-                    const saved = localStorage.getItem(`tasks_${currentUser.id}`);
-                    tasks = saved ? JSON.parse(saved) : [
+                    document.getElementById('totalEmployees').textContent = '25';
+                    document.getElementById('presentToday').textContent = '22';
+                    document.getElementById('absentToday').textContent = '3';
+                    document.getElementById('onBreak').textContent = '5';
+                    return;
+                }
+
+                // Get total employees
+                const { data: employees } = await supabase
+                    .from('employees')
+                    .select('id');
+                
+                // Get today's attendance
+                const today = new Date().toISOString().split('T')[0];
+                const { data: attendance } = await supabase
+                    .from('attendance')
+                    .select('status')
+                    .eq('date', today);
+                
+                const totalEmployees = employees?.length || 0;
+                const presentToday = attendance?.filter(a => a.status === 'present').length || 0;
+                const absentToday = totalEmployees - presentToday;
+                
+                document.getElementById('totalEmployees').textContent = totalEmployees;
+                document.getElementById('presentToday').textContent = presentToday;
+                document.getElementById('absentToday').textContent = absentToday;
+                document.getElementById('onBreak').textContent = '0'; // This would need real-time tracking
+                
+            } catch (error) {
+                console.error('Error loading admin stats:', error);
+            }
+        }
+
+        async function loadLiveAttendance() {
+            const container = document.getElementById('liveAttendance');
+            
+            try {
+                if (currentUser.isDemo) {
+                    container.innerHTML = `
+                        <div style="max-height: 300px; overflow-y: auto;">
+                            <div class="employee-card" style="margin-bottom: 10px; padding: 15px;">
+                                <div>
+                                    <h4>John Smith</h4>
+                                    <p>IT Department</p>
+                                </div>
+                                <span class="status-badge status-working">💼 Working</span>
+                            </div>
+                            <div class="employee-card" style="margin-bottom: 10px; padding: 15px;">
+                                <div>
+                                    <h4>Sarah Johnson</h4>
+                                    <p>HR Department</p>
+                                </div>
+                                <span class="status-badge status-break">☕ On Break</span>
+                            </div>
+                            <div class="employee-card" style="margin-bottom: 10px; padding: 15px;">
+                                <div>
+                                    <h4>Mike Wilson</h4>
+                                    <p>Finance Department</p>
+                                </div>
+                                <span class="status-badge status-out">🏠 Not Checked In</span>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const today = new Date().toISOString().split('T')[0];
+                const { data: liveData } = await supabase
+                    .from('employees')
+                    .select(`
+                        name, 
+                        department,
+                        attendance!left(status, check_in, check_out)
+                    `)
+                    .eq('attendance.date', today);
+
+                if (!liveData || liveData.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; color: #666;">No attendance data for today</p>';
+                    return;
+                }
+
+                container.innerHTML = `
+                    <div style="max-height: 300px; overflow-y: auto;">
+                        ${liveData.map(emp => `
+                            <div class="employee-card" style="margin-bottom: 10px; padding: 15px;">
+                                <div>
+                                    <h4>${emp.name}</h4>
+                                    <p>${emp.department} Department</p>
+                                </div>
+                                <span class="status-badge ${emp.attendance && emp.attendance.length > 0 && emp.attendance[0].status === 'present' ? 'status-working' : 'status-out'}">
+                                    ${emp.attendance && emp.attendance.length > 0 && emp.attendance[0].status === 'present' ? '💼 Working' : '🏠 Not Checked In'}
+                                </span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Error loading live attendance:', error);
+                container.innerHTML = '<p style="text-align: center; color: #e53e3e;">Error loading attendance data</p>';
+            }
+        }
+
+        // Employee Management Functions
+        async function loadEmployeeManagement() {
+            const container = document.getElementById('employeeList');
+            
+            try {
+                if (currentUser.isDemo) {
+                    container.innerHTML = `
+                        <div class="employee-card">
+                            <div class="employee-info">
+                                <h4>John Smith</h4>
+                                <p>📧 john.smith@company.com | 🏢 IT Department | 👤 Employee</p>
+                                <p>📞 +91 9876543210 | 💰 ₹55,000 | 📅 Joined: 2023-01-15</p>
+                            </div>
+                            <div class="employee-actions">
+                                <button class="btn-small btn-info" onclick="editEmployee('emp1')">✏️ Edit</button>
+                                <button class="btn-small btn-danger" onclick="deleteEmployee('emp1')">🗑️ Delete</button>
+                            </div>
+                        </div>
+                        <div class="employee-card">
+                            <div class="employee-info">
+                                <h4>Sarah Johnson</h4>
+                                <p>📧 sarah.johnson@company.com | 🏢 HR Department | 👤 Manager</p>
+                                <p>📞 +91 9876543211 | 💰 ₹75,000 | 📅 Joined: 2022-08-20</p>
+                            </div>
+                            <div class="employee-actions">
+                                <button class="btn-small btn-info" onclick="editEmployee('emp2')">✏️ Edit</button>
+                                <button class="btn-small btn-danger" onclick="deleteEmployee('emp2')">🗑️ Delete</button>
+                            </div>
+                        </div>
+                    `;
+                    // Load employees in task assignment dropdown
+                    const taskAssignSelect = document.getElementById('taskAssignTo');
+                    const options = `
+                        <option value="emp1">John Smith</option>
+                        <option value="emp2">Sarah Johnson</option>
+                    `;
+                    taskAssignSelect.innerHTML = '<option value="">Select Employee</option>' + options;
+                    return;
+                }
+
+                const { data: employees, error } = await supabase
+                    .from('employees')
+                    .select('*')
+                    .order('name');
+
+                if (error) throw error;
+
+                if (!employees || employees.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; color: #666;">No employees found</p>';
+                    return;
+                }
+
+                container.innerHTML = employees.map(emp => `
+                    <div class="employee-card">
+                        <div class="employee-info">
+                            <h4>${emp.name}</h4>
+                            <p>📧 ${emp.email} | 🏢 ${emp.department} | 👤 ${emp.role}</p>
+                            <p>📞 ${emp.phone || 'N/A'} | 💰 ₹${emp.salary || 'N/A'} | 📅 Joined: ${emp.join_date || 'N/A'}</p>
+                        </div>
+                        <div class="employee-actions">
+                            <button class="btn-small btn-info" onclick="editEmployee('${emp.id}')">✏️ Edit</button>
+                            <button class="btn-small btn-danger" onclick="deleteEmployee('${emp.id}')">🗑️ Delete</button>
+                        </div>
+                    </div>
+                `).join('');
+
+                // Load employees in dropdowns
+                const options = employees.map(emp => `<option value="${emp.id}">${emp.name}</option>`).join('');
+                document.getElementById('taskAssignTo').innerHTML = '<option value="">Select Employee</option>' + options;
+                
+            } catch (error) {
+                console.error('Error loading employees:', error);
+                container.innerHTML = '<p style="text-align: center; color: #e53e3e;">Error loading employees</p>';
+            }
+        }
+
+        async function handleAddEmployee(e) {
+            e.preventDefault();
+            
+            const employeeData = {
+                name: document.getElementById('empName').value,
+                email: document.getElementById('empEmail').value,
+                password: document.getElementById('empPassword').value,
+                phone: document.getElementById('empPhone').value,
+                department: document.getElementById('empDepartment').value,
+                role: document.getElementById('empRole').value,
+                salary: parseFloat(document.getElementById('empSalary').value),
+                join_date: document.getElementById('empJoinDate').value
+            };
+            
+            try {
+                if (currentUser.isDemo) {
+                    showNotification('Employee added successfully! (Demo Mode) 🎉', 'success');
+                    closeModal('addEmployeeModal');
+                    e.target.reset();
+                    loadEmployeeManagement();
+                    return;
+                }
+
+                // For real implementation, you would need admin access to create users
+                // This is a simplified version
+                const { error: dbError } = await supabase
+                    .from('employees')
+                    .insert([{
+                        name: employeeData.name,
+                        email: employeeData.email,
+                        phone: employeeData.phone,
+                        department: employeeData.department,
+                        role: employeeData.role,
+                        salary: employeeData.salary,
+                        join_date: employeeData.join_date
+                    }]);
+
+                if (dbError) throw dbError;
+                
+                closeModal('addEmployeeModal');
+                loadEmployeeManagement();
+                showNotification('Employee added successfully! 🎉', 'success');
+                e.target.reset();
+                
+            } catch (error) {
+                console.error('Add employee error:', error);
+                showNotification('Failed to add employee ❌', 'error');
+            }
+        }
+
+        async function deleteEmployee(employeeId) {
+            if (!confirm('Are you sure you want to delete this employee?')) return;
+            
+            try {
+                if (currentUser.isDemo) {
+                    showNotification('Employee deleted! (Demo Mode) 🗑️', 'success');
+                    loadEmployeeManagement();
+                    return;
+                }
+
+                const { error } = await supabase
+                    .from('employees')
+                    .delete()
+                    .eq('id', employeeId);
+
+                if (error) throw error;
+                
+                loadEmployeeManagement();
+                showNotification('Employee deleted successfully! 🗑️', 'success');
+                
+            } catch (error) {
+                console.error('Delete employee error:', error);
+                showNotification('Failed to delete employee ❌', 'error');
+            }
+        }
+
+        // Task Management Functions
+        async function loadMyTasks() {
+            const container = document.getElementById('myTaskList');
+            
+            try {
+                if (currentUser.isDemo) {
+                    const demoTasks = [
                         {
-                            id: 'task_1',
-                            title: 'Complete project report',
-                            description: 'Finish quarterly report',
+                            id: 'task1',
+                            title: 'Complete project documentation',
+                            description: 'Finish quarterly project documentation',
                             priority: 'high',
                             due_date: '2024-08-20',
                             status: 'pending'
                         },
                         {
-                            id: 'task_2',
-                            title: 'Team meeting',
-                            description: 'Prepare for weekly team meeting',
+                            id: 'task2',
+                            title: 'Prepare presentation',
+                            description: 'Weekly team meeting presentation',
                             priority: 'medium',
                             due_date: '2024-08-18',
                             status: 'in_progress'
                         }
                     ];
-                } else {
-                    const { data } = await supabase
-                        .from('tasks')
-                        .select('*')
-                        .eq('assigned_to', currentUser.id)
-                        .order('created_at', { ascending: false });
-                    tasks = data || [];
+                    displayTasks(demoTasks, container);
+                    document.getElementById('totalTasks').textContent = demoTasks.length;
+                    return;
                 }
+
+                const { data: tasks } = await supabase
+                    .from('tasks')
+                    .select('*')
+                    .eq('assigned_to', currentUser.id)
+                    .order('created_at', { ascending: false });
                 
-                displayTasks(tasks);
+                displayTasks(tasks || [], container);
+                document.getElementById('totalTasks').textContent = tasks?.length || 0;
+                
             } catch (error) {
-                console.error('Load tasks error:', error);
-                displayTasks([]);
+                console.error('Error loading tasks:', error);
+                displayTasks([], container);
             }
         }
 
-        function displayTasks(tasks) {
-            const container = document.getElementById('taskList');
+        async function loadTaskManagement() {
+            const container = document.getElementById('allTasksList');
             
+            try {
+                if (currentUser.isDemo) {
+                    container.innerHTML = `
+                        <div class="task-item">
+                            <div class="task-header">
+                                <div>
+                                    <div class="task-title">Complete project documentation</div>
+                                    <p>Assigned to: John Smith</p>
+                                </div>
+                                <span class="priority-high">🔴 HIGH</span>
+                            </div>
+                            <p>Finish quarterly project documentation</p>
+                            <div class="task-meta">
+                                <span>Due: 20/08/2024</span>
+                                <span>Status: Pending</span>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const { data: tasks } = await supabase
+                    .from('tasks')
+                    .select(`
+                        *,
+                        employees!inner(name)
+                    `)
+                    .order('created_at', { ascending: false });
+
+                if (!tasks || tasks.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; color: #666;">No tasks assigned yet</p>';
+                    return;
+                }
+
+                container.innerHTML = tasks.map(task => `
+                    <div class="task-item">
+                        <div class="task-header">
+                            <div>
+                                <div class="task-title">${task.title}</div>
+                                <p>Assigned to: ${task.employees.name}</p>
+                            </div>
+                            <span class="priority-${task.priority}">${getPriorityIcon(task.priority)} ${task.priority.toUpperCase()}</span>
+                        </div>
+                        <p>${task.description || 'No description'}</p>
+                        <div class="task-meta">
+                            <span>Due: ${new Date(task.due_date).toLocaleDateString()}</span>
+                            <span>Status: ${task.status}</span>
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Error loading all tasks:', error);
+                container.innerHTML = '<p style="text-align: center; color: #e53e3e;">Error loading tasks</p>';
+            }
+        }
+
+        function displayTasks(tasks, container) {
             if (tasks.length === 0) {
-                container.innerHTML = '<p style="text-align: center; color: #666;">No tasks yet. Add your first task!</p>';
+                container.innerHTML = '<p style="text-align: center; color: #666;">No tasks assigned yet</p>';
                 return;
             }
             
             container.innerHTML = tasks.map(task => `
                 <div class="task-item">
-                    <h4>${task.title}</h4>
+                    <div class="task-header">
+                        <div class="task-title">${task.title}</div>
+                        <span class="priority-${task.priority}">${getPriorityIcon(task.priority)} ${task.priority.toUpperCase()}</span>
+                    </div>
                     <p>${task.description || 'No description'}</p>
                     <div class="task-meta">
-                        <span class="priority-${task.priority}">${task.priority.toUpperCase()}</span>
                         <span>Due: ${new Date(task.due_date).toLocaleDateString()}</span>
-                        <span>${task.status}</span>
+                        <span>Status: ${task.status}</span>
+                        <button class="btn-small btn-info" onclick="updateTaskStatus('${task.id}', '${task.status}')">
+                            ${task.status === 'pending' ? '▶️ Start' : task.status === 'in_progress' ? '✅ Complete' : '✅ Done'}
+                        </button>
                     </div>
                 </div>
             `).join('');
+        }
+
+        function getPriorityIcon(priority) {
+            switch(priority) {
+                case 'high': return '🔴';
+                case 'medium': return '🟡';
+                case 'low': return '🟢';
+                default: return '⚪';
+            }
+        }
+
+        async function updateTaskStatus(taskId, currentStatus) {
+            const nextStatus = currentStatus === 'pending' ? 'in_progress' : 
+                             currentStatus === 'in_progress' ? 'completed' : 'completed';
+            
+            try {
+                if (currentUser.isDemo) {
+                    showNotification('Task status updated! (Demo Mode) ✅', 'success');
+                    loadMyTasks();
+                    return;
+                }
+
+                const { error } = await supabase
+                    .from('tasks')
+                    .update({ status: nextStatus })
+                    .eq('id', taskId);
+
+                if (error) throw error;
+                
+                loadMyTasks();
+                showNotification('Task status updated! ✅', 'success');
+                
+            } catch (error) {
+                console.error('Update task error:', error);
+                showNotification('Failed to update task ❌', 'error');
+            }
         }
 
         async function handleAddTask(e) {
             e.preventDefault();
             
             const taskData = {
-                id: 'task_' + Date.now(),
                 title: document.getElementById('taskTitle').value,
-                description: document.getElementById('taskDesc').value,
+                description: document.getElementById('taskDescription').value,
                 priority: document.getElementById('taskPriority').value,
-                due_date: document.getElementById('taskDue').value,
+                due_date: document.getElementById('taskDueDate').value,
+                assigned_to: document.getElementById('taskAssignTo').value,
                 status: 'pending',
-                assigned_to: currentUser.id,
-                created_at: new Date().toISOString()
+                created_by: currentUser.id
             };
             
             try {
                 if (currentUser.isDemo) {
-                    const saved = localStorage.getItem(`tasks_${currentUser.id}`);
-                    const tasks = saved ? JSON.parse(saved) : [];
-                    tasks.unshift(taskData);
-                    localStorage.setItem(`tasks_${currentUser.id}`, JSON.stringify(tasks));
-                } else {
-                    await supabase.from('tasks').insert([taskData]);
+                    showNotification('Task assigned successfully! (Demo Mode) 🎉', 'success');
+                    closeModal('addTaskModal');
+                    e.target.reset();
+                    return;
                 }
+
+                const { error } = await supabase
+                    .from('tasks')
+                    .insert([taskData]);
+
+                if (error) throw error;
                 
-                closeModal();
-                loadTasks();
-                showNotification('Task added successfully!', 'success');
+                closeModal('addTaskModal');
+                loadTaskManagement();
+                showNotification('Task assigned successfully! 🎉', 'success');
                 e.target.reset();
+                
             } catch (error) {
                 console.error('Add task error:', error);
-                showNotification('Failed to add task', 'error');
+                showNotification('Failed to assign task ❌', 'error');
             }
+        }
+
+        // Schedule Functions
+        async function loadMySchedule() {
+            const container = document.getElementById('mySchedule');
+            
+            container.innerHTML = `
+                <div style="margin-bottom: 15px;">
+                    <h4>📅 Today's Schedule</h4>
+                    <div style="padding: 10px; background: #f7fafc; border-radius: 8px; margin-top: 10px;">
+                        <p><strong>🕘 9:00 AM - 6:00 PM</strong></p>
+                        <p>🌅 Morning Shift | 🏢 Office</p>
+                        <p>📝 Regular working day</p>
+                    </div>
+                </div>
+                <div>
+                    <h4>📊 This Week</h4>
+                    <div style="font-size: 12px; margin-top: 10px;">
+                        <div style="display: flex; justify-content: space-between; padding: 5px 0;">
+                            <span>Mon</span><span class="status-badge status-working">Work</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 5px 0;">
+                            <span>Tue</span><span class="status-badge status-working">Work</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 5px 0;">
+                            <span>Wed</span><span class="status-badge status-working">Work</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 5px 0;">
+                            <span>Thu</span><span class="status-badge status-working">Work</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 5px 0;">
+                            <span>Fri</span><span class="status-badge status-working">Work</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 5px 0;">
+                            <span>Sat</span><span class="status-badge status-out">Off</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 5px 0;">
+                            <span>Sun</span><span class="status-badge status-out">Off</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Leave Management Functions
+        async function loadLeaveManagement() {
+            const container = document.getElementById('leaveRequestsList');
+            
+            try {
+                if (currentUser.isDemo) {
+                    container.innerHTML = `
+                        <div class="card">
+                            <h3>📊 Leave Balance</h3>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                                <div style="text-align: center; padding: 15px; background: #f7fafc; border-radius: 8px;">
+                                    <div style="font-size: 24px; font-weight: bold; color: #48bb78;">12</div>
+                                    <div style="font-size: 12px; color: #666;">Casual Leave</div>
+                                </div>
+                                <div style="text-align: center; padding: 15px; background: #f7fafc; border-radius: 8px;">
+                                    <div style="font-size: 24px; font-weight: bold; color: #4299e1;">7</div>
+                                    <div style="font-size: 12px; color: #666;">Sick Leave</div>
+                                </div>
+                                <div style="text-align: center; padding: 15px; background: #f7fafc; border-radius: 8px;">
+                                    <div style="font-size: 24px; font-weight: bold; color: #ed8936;">21</div>
+                                    <div style="font-size: 12px; color: #666;">Earned Leave</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <h3>📝 Recent Leave Requests</h3>
+                            <div class="task-item">
+                                <div class="task-header">
+                                    <div>
+                                        <div class="task-title">Casual Leave</div>
+                                        <p>25 Aug - 27 Aug 2024</p>
+                                    </div>
+                                    <span class="status-badge status-working">✅ Approved</span>
+                                </div>
+                                <p>Family function</p>
+                                <div class="task-meta">
+                                    <span>Applied: 20 Aug 2024</span>
+                                    <span>3 days</span>
+                                    ${currentUser.role === 'admin' ? `
+                                        <button class="btn-small btn-success" onclick="approveLeave('demo1')">✅ Approved</button>
+                                    ` : ''}
+                                </div>
+                            </div>
+                            <div class="task-item">
+                                <div class="task-header">
+                                    <div>
+                                        <div class="task-title">Sick Leave</div>
+                                        <p>15 Aug 2024</p>
+                                    </div>
+                                    <span class="status-badge status-break">⏳ Pending</span>
+                                </div>
+                                <p>Medical checkup</p>
+                                <div class="task-meta">
+                                    <span>Applied: 14 Aug 2024</span>
+                                    <span>1 day</span>
+                                    ${currentUser.role === 'admin' ? `
+                                        <button class="btn-small btn-success" onclick="approveLeave('demo2')">✅ Approve</button>
+                                        <button class="btn-small btn-danger" onclick="rejectLeave('demo2')">❌ Reject</button>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Load leave balance and requests
+                const { data: leaveBalance } = await supabase
+                    .from('leave_balance')
+                    .select('*')
+                    .eq('employee_id', currentUser.id)
+                    .single();
+
+                const { data: leaveRequests } = await supabase
+                    .from('leave_requests')
+                    .select('*')
+                    .eq('employee_id', currentUser.id)
+                    .order('created_at', { ascending: false });
+
+                const balance = leaveBalance || { casual: 12, sick: 7, earned: 21 };
+                const requests = leaveRequests || [];
+
+                container.innerHTML = `
+                    <div class="card">
+                        <h3>📊 Leave Balance</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                            <div style="text-align: center; padding: 15px; background: #f7fafc; border-radius: 8px;">
+                                <div style="font-size: 24px; font-weight: bold; color: #48bb78;">${balance.casual || 12}</div>
+                                <div style="font-size: 12px; color: #666;">Casual Leave</div>
+                            </div>
+                            <div style="text-align: center; padding: 15px; background: #f7fafc; border-radius: 8px;">
+                                <div style="font-size: 24px; font-weight: bold; color: #4299e1;">${balance.sick || 7}</div>
+                                <div style="font-size: 12px; color: #666;">Sick Leave</div>
+                            </div>
+                            <div style="text-align: center; padding: 15px; background: #f7fafc; border-radius: 8px;">
+                                <div style="font-size: 24px; font-weight: bold; color: #ed8936;">${balance.earned || 21}</div>
+                                <div style="font-size: 12px; color: #666;">Earned Leave</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>📝 Recent Leave Requests</h3>
+                        ${requests.length === 0 ? '<p style="text-align: center; color: #666;">No leave requests yet</p>' : 
+                            requests.map(request => `
+                                <div class="task-item">
+                                    <div class="task-header">
+                                        <div>
+                                            <div class="task-title">${request.leave_type.charAt(0).toUpperCase() + request.leave_type.slice(1)} Leave</div>
+                                            <p>${new Date(request.from_date).toLocaleDateString()} - ${new Date(request.to_date).toLocaleDateString()}</p>
+                                        </div>
+                                        <span class="status-badge ${getLeaveStatusClass(request.status)}">${getLeaveStatusIcon(request.status)} ${request.status.charAt(0).toUpperCase() + request.status.slice(1)}</span>
+                                    </div>
+                                    <p>${request.reason}</p>
+                                    <div class="task-meta">
+                                        <span>Applied: ${new Date(request.created_at).toLocaleDateString()}</span>
+                                        <span>${calculateLeaveDays(request.from_date, request.to_date)} days</span>
+                                        ${currentUser.role === 'admin' && request.status === 'pending' ? `
+                                            <button class="btn-small btn-success" onclick="approveLeave('${request.id}')">✅ Approve</button>
+                                            <button class="btn-small btn-danger" onclick="rejectLeave('${request.id}')">❌ Reject</button>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            `).join('')
+                        }
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Error loading leave management:', error);
+                container.innerHTML = '<p style="color: #e53e3e;">Error loading leave data</p>';
+            }
+        }
+
+        function getLeaveStatusClass(status) {
+            switch(status) {
+                case 'approved': return 'status-working';
+                case 'rejected': return 'status-out';
+                case 'pending': return 'status-break';
+                default: return 'status-break';
+            }
+        }
+
+        function getLeaveStatusIcon(status) {
+            switch(status) {
+                case 'approved': return '✅';
+                case 'rejected': return '❌';
+                case 'pending': return '⏳';
+                default: return '⏳';
+            }
+        }
+
+        function calculateLeaveDays(fromDate, toDate) {
+            const start = new Date(fromDate);
+            const end = new Date(toDate);
+            const diffTime = Math.abs(end - start);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            return diffDays;
+        }
+
+        async function handleApplyLeave(e) {
+            e.preventDefault();
+            
+            const leaveData = {
+                employee_id: currentUser.id,
+                leave_type: document.getElementById('leaveType').value,
+                from_date: document.getElementById('leaveFromDate').value,
+                to_date: document.getElementById('leaveToDate').value,
+                reason: document.getElementById('leaveReason').value,
+                status: 'pending'
+            };
+            
+            try {
+                if (currentUser.isDemo) {
+                    showNotification('Leave application submitted! (Demo Mode) 🏖️', 'success');
+                    closeModal('applyLeaveModal');
+                    e.target.reset();
+                    loadLeaveManagement();
+                    return;
+                }
+
+                const { error } = await supabase
+                    .from('leave_requests')
+                    .insert([leaveData]);
+
+                if (error) throw error;
+                
+                closeModal('applyLeaveModal');
+                loadLeaveManagement();
+                showNotification('Leave application submitted! 🏖️', 'success');
+                e.target.reset();
+                
+            } catch (error) {
+                console.error('Apply leave error:', error);
+                showNotification('Failed to submit leave application ❌', 'error');
+            }
+        }
+
+        async function approveLeave(leaveId) {
+            try {
+                if (currentUser.isDemo) {
+                    showNotification('Leave approved! (Demo Mode) ✅', 'success');
+                    loadLeaveManagement();
+                    return;
+                }
+
+                const { error } = await supabase
+                    .from('leave_requests')
+                    .update({ status: 'approved' })
+                    .eq('id', leaveId);
+
+                if (error) throw error;
+                
+                loadLeaveManagement();
+                showNotification('Leave approved! ✅', 'success');
+                
+            } catch (error) {
+                console.error('Approve leave error:', error);
+                showNotification('Failed to approve leave ❌', 'error');
+            }
+        }
+
+        async function rejectLeave(leaveId) {
+            try {
+                if (currentUser.isDemo) {
+                    showNotification('Leave rejected! (Demo Mode) ❌', 'error');
+                    loadLeaveManagement();
+                    return;
+                }
+
+                const { error } = await supabase
+                    .from('leave_requests')
+                    .update({ status: 'rejected' })
+                    .eq('id', leaveId);
+
+                if (error) throw error;
+                
+                loadLeaveManagement();
+                showNotification('Leave rejected! ❌', 'error');
+                
+            } catch (error) {
+                console.error('Reject leave error:', error);
+                showNotification('Failed to reject leave ❌', 'error');
+            }
+        }
+
+        // Report Functions
+        async function loadAttendanceReport() {
+            const container = document.getElementById('attendanceReportData');
+            const month = document.getElementById('reportMonth').value;
+            
+            if (!month) {
+                container.innerHTML = '<p style="color: #666;">Please select a month</p>';
+                return;
+            }
+            
+            try {
+                if (currentUser.isDemo) {
+                    container.innerHTML = `
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Employee</th>
+                                    <th>Department</th>
+                                    <th>Present Days</th>
+                                    <th>Absent Days</th>
+                                    <th>Total Hours</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>John Smith</td>
+                                    <td>IT</td>
+                                    <td>22</td>
+                                    <td>3</td>
+                                    <td>176h</td>
+                                    <td><span class="status-badge status-working">Good</span></td>
+                                </tr>
+                                <tr>
+                                    <td>Sarah Johnson</td>
+                                    <td>HR</td>
+                                    <td>24</td>
+                                    <td>1</td>
+                                    <td>192h</td>
+                                    <td><span class="status-badge status-working">Excellent</span></td>
+                                </tr>
+                                <tr>
+                                    <td>Mike Wilson</td>
+                                    <td>Finance</td>
+                                    <td>20</td>
+                                    <td>5</td>
+                                    <td>160h</td>
+                                    <td><span class="status-badge status-break">Average</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    `;
+                    return;
+                }
+
+                const startDate = month + '-01';
+                const endDate = new Date(month + '-01');
+                endDate.setMonth(endDate.getMonth() + 1);
+                endDate.setDate(0);
+                const endDateStr = endDate.toISOString().split('T')[0];
+
+                const { data: reportData } = await supabase
+                    .from('employees')
+                    .select(`
+                        name,
+                        department,
+                        attendance!left(date, status, total_hours)
+                    `)
+                    .gte('attendance.date', startDate)
+                    .lte('attendance.date', endDateStr);
+
+                if (!reportData || reportData.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; color: #666;">No attendance data for selected month</p>';
+                    return;
+                }
+
+                const processedData = reportData.map(emp => {
+                    const attendance = emp.attendance || [];
+                    const presentDays = attendance.filter(a => a.status === 'present').length;
+                    const totalHours = attendance.reduce((sum, a) => sum + (a.total_hours || 0), 0);
+                    const workingDays = new Date(endDate.getFullYear(), endDate.getMonth() + 1, 0).getDate();
+                    const absentDays = workingDays - presentDays;
+                    
+                    return {
+                        name: emp.name,
+                        department: emp.department,
+                        presentDays,
+                        absentDays,
+                        totalHours: Math.round(totalHours),
+                        status: presentDays >= workingDays * 0.9 ? 'Excellent' : 
+                               presentDays >= workingDays * 0.8 ? 'Good' : 'Average'
+                    };
+                });
+
+                container.innerHTML = `
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Employee</th>
+                                <th>Department</th>
+                                <th>Present Days</th>
+                                <th>Absent Days</th>
+                                <th>Total Hours</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${processedData.map(emp => `
+                                <tr>
+                                    <td>${emp.name}</td>
+                                    <td>${emp.department}</td>
+                                    <td>${emp.presentDays}</td>
+                                    <td>${emp.absentDays}</td>
+                                    <td>${emp.totalHours}h</td>
+                                    <td><span class="status-badge ${emp.status === 'Excellent' ? 'status-working' : emp.status === 'Good' ? 'status-working' : 'status-break'}">${emp.status}</span></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+                
+            } catch (error) {
+                console.error('Error loading attendance report:', error);
+                container.innerHTML = '<p style="color: #e53e3e;">Error loading report data</p>';
+            }
+        }
+
+        // Form Validation Functions
+        function setupFormValidations() {
+            // Email validation
+            function validateEmail(email) {
+                const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                return re.test(email);
+            }
+
+            // Phone validation
+            function validatePhone(phone) {
+                const re = /^[+]?[\d\s()-]+$/;
+                return re.test(phone) && phone.length >= 10;
+            }
+
+            // Password validation
+            function validatePassword(password) {
+                return password.length >= 6;
+            }
+
+            // Enhanced form validation for employee form
+            document.getElementById('addEmployeeForm').addEventListener('submit', function(e) {
+                const email = document.getElementById('empEmail').value;
+                const phone = document.getElementById('empPhone').value;
+                const password = document.getElementById('empPassword').value;
+                
+                if (!validateEmail(email)) {
+                    e.preventDefault();
+                    showNotification('Please enter a valid email address! 📧', 'error');
+                    return;
+                }
+                
+                if (!validatePhone(phone)) {
+                    e.preventDefault();
+                    showNotification('Please enter a valid phone number! 📞', 'error');
+                    return;
+                }
+                
+                if (!validatePassword(password)) {
+                    e.preventDefault();
+                    showNotification('Password must be at least 6 characters! 🔐', 'error');
+                    return;
+                }
+            });
+
+            // Date validation for leave application
+            document.getElementById('applyLeaveForm').addEventListener('submit', function(e) {
+                const fromDate = new Date(document.getElementById('leaveFromDate').value);
+                const toDate = new Date(document.getElementById('leaveToDate').value);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                if (fromDate < today) {
+                    e.preventDefault();
+                    showNotification('From date cannot be in the past! 📅', 'error');
+                    return;
+                }
+                
+                if (toDate < fromDate) {
+                    e.preventDefault();
+                    showNotification('To date cannot be before from date! 📅', 'error');
+                    return;
+                }
+            });
+        }
+
+        // Utility Functions
+        function updateLiveData() {
+            if (currentUser && currentUser.role === 'admin') {
+                loadAdminStats();
+                loadLiveAttendance();
+            }
+        }
+
+        function showLoading(textElementId, loaderElementId) {
+            document.getElementById(textElementId).style.display = 'none';
+            document.getElementById(loaderElementId).style.display = 'inline-block';
+        }
+
+        function hideLoading(textElementId, loaderElementId) {
+            document.getElementById(textElementId).style.display = 'inline';
+            document.getElementById(loaderElementId).style.display = 'none';
         }
 
         // Modal Functions
-        function openModal() {
-            document.getElementById('taskModal').classList.add('show');
+        function openAddEmployeeModal() {
+            document.getElementById('addEmployeeModal').classList.add('show');
         }
 
-        function closeModal() {
-            document.getElementById('taskModal').classList.remove('show');
+        function openAddTaskModal() {
+            document.getElementById('addTaskModal').classList.add('show');
         }
 
-        // Close modal on outside click
+        function openApplyLeaveModal() {
+            document.getElementById('applyLeaveModal').classList.add('show');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+        }
+
+        // Placeholder functions for future features
+        function exportAttendance() {
+            showNotification('Export feature coming soon! 📊', 'info');
+        }
+
+        function exportAttendanceReport() {
+            showNotification('Export feature coming soon! 📊', 'info');
+        }
+
+        function editEmployee(employeeId) {
+            showNotification('Edit feature coming soon! ✏️', 'info');
+        }
+
+        // Event Listeners
         document.addEventListener('click', function(e) {
             if (e.target.classList.contains('modal')) {
-                closeModal();
+                e.target.classList.remove('show');
             }
         });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal.show').forEach(modal => {
+                    modal.classList.remove('show');
+                });
+            }
+        });
+
+        // Enhanced error handling
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error('Unhandled promise rejection:', event.reason);
+            showNotification('An unexpected error occurred. Please try again. ⚠️', 'error');
+        });
+
+        // Network status monitoring
+        window.addEventListener('online', function() {
+            showNotification('Connection restored! 🌐', 'success');
+            if (currentUser) {
+                loadDashboardData();
+            }
+        });
+
+        window.addEventListener('offline', function() {
+            showNotification('No internet connection! Working in offline mode. 📱', 'error');
+        });
+
+        // Performance monitoring
+        if ('performance' in window) {
+            window.addEventListener('load', function() {
+                setTimeout(function() {
+                    const perfData = performance.getEntriesByType('navigation')[0];
+                    console.log('Page load time:', perfData.loadEventEnd - perfData.loadEventStart, 'ms');
+                }, 0);
+            });
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            cleanupSubscriptions();
+        });
+
+        // Auto-refresh data every 5 minutes
+        setInterval(() => {
+            if (currentUser) {
+                loadDashboardData();
+            }
+        }, 300000); // 5 minutes
+
+        // Initialize app
+        console.log('🚀 Employee Management Portal loaded successfully!');
     </script>
 </body>
 </html>
