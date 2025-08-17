@@ -2457,16 +2457,18 @@
 
         // Form Validation Functions
         function setupFormValidations() {
-            // Email validation
+            // Email validation - Made more flexible
             function validateEmail(email) {
+                // Basic email validation - less strict
                 const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                return re.test(email);
+                return email.length > 0 && re.test(email.trim());
             }
 
-            // Phone validation
+            // Phone validation - Made more flexible
             function validatePhone(phone) {
-                const re = /^[+]?[\d\s()-]+$/;
-                return re.test(phone) && phone.length >= 10;
+                // Allow any phone format with at least 10 digits
+                const digitsOnly = phone.replace(/\D/g, '');
+                return digitsOnly.length >= 10;
             }
 
             // Password validation
@@ -2474,25 +2476,26 @@
                 return password.length >= 6;
             }
 
-            // Enhanced form validation for employee form
+            // Enhanced form validation for employee form - Fixed validation
             document.getElementById('addEmployeeForm').addEventListener('submit', function(e) {
-                const email = document.getElementById('empEmail').value;
-                const phone = document.getElementById('empPhone').value;
+                const email = document.getElementById('empEmail').value.trim();
+                const phone = document.getElementById('empPhone').value.trim();
                 const password = document.getElementById('empPassword').value;
                 
-                if (!validateEmail(email)) {
+                // Only validate if fields are not empty
+                if (email && !validateEmail(email)) {
                     e.preventDefault();
                     showNotification('Please enter a valid email address! 📧', 'error');
                     return;
                 }
                 
-                if (!validatePhone(phone)) {
+                if (phone && !validatePhone(phone)) {
                     e.preventDefault();
                     showNotification('Please enter a valid phone number! 📞', 'error');
                     return;
                 }
                 
-                if (!validatePassword(password)) {
+                if (password && !validatePassword(password)) {
                     e.preventDefault();
                     showNotification('Password must be at least 6 characters! 🔐', 'error');
                     return;
