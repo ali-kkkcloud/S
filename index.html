@@ -2457,69 +2457,65 @@
 
         // Form Validation Functions
         function setupFormValidations() {
-            // Email validation - Made more flexible
+            // Email validation - COMPLETELY REMOVED
             function validateEmail(email) {
-                // Basic email validation - less strict
-                const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                return email.length > 0 && re.test(email.trim());
+                // Accept anything - no validation
+                return true;
             }
 
-            // Phone validation - Made more flexible
+            // Phone validation - Very flexible
             function validatePhone(phone) {
-                // Allow any phone format with at least 10 digits
-                const digitsOnly = phone.replace(/\D/g, '');
-                return digitsOnly.length >= 10;
+                // Accept anything with at least 5 characters
+                return phone.trim().length >= 5;
             }
 
-            // Password validation
+            // Password validation - Very flexible
             function validatePassword(password) {
-                return password.length >= 6;
+                // Accept anything with at least 3 characters
+                return password.length >= 3;
             }
 
-            // Enhanced form validation for employee form - Fixed validation
+            // Enhanced form validation for employee form - MINIMAL validation
             document.getElementById('addEmployeeForm').addEventListener('submit', function(e) {
                 const email = document.getElementById('empEmail').value.trim();
                 const phone = document.getElementById('empPhone').value.trim();
                 const password = document.getElementById('empPassword').value;
+                const name = document.getElementById('empName').value.trim();
                 
-                // Only validate if fields are not empty
-                if (email && !validateEmail(email)) {
+                // Only check if required fields are not empty
+                if (!name) {
                     e.preventDefault();
-                    showNotification('Please enter a valid email address! 📧', 'error');
+                    showNotification('Please enter employee name! 👤', 'error');
                     return;
                 }
                 
-                if (phone && !validatePhone(phone)) {
+                if (!email) {
                     e.preventDefault();
-                    showNotification('Please enter a valid phone number! 📞', 'error');
+                    showNotification('Please enter some email! 📧', 'error');
                     return;
                 }
                 
-                if (password && !validatePassword(password)) {
+                if (!password) {
                     e.preventDefault();
-                    showNotification('Password must be at least 6 characters! 🔐', 'error');
+                    showNotification('Please enter some password! 🔐', 'error');
                     return;
                 }
+                
+                // No format validation - accept anything!
             });
 
-            // Date validation for leave application
+            // Date validation for leave application - only check if dates selected
             document.getElementById('applyLeaveForm').addEventListener('submit', function(e) {
-                const fromDate = new Date(document.getElementById('leaveFromDate').value);
-                const toDate = new Date(document.getElementById('leaveToDate').value);
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
+                const fromDate = document.getElementById('leaveFromDate').value;
+                const toDate = document.getElementById('leaveToDate').value;
                 
-                if (fromDate < today) {
+                if (!fromDate || !toDate) {
                     e.preventDefault();
-                    showNotification('From date cannot be in the past! 📅', 'error');
+                    showNotification('Please select both dates! 📅', 'error');
                     return;
                 }
                 
-                if (toDate < fromDate) {
-                    e.preventDefault();
-                    showNotification('To date cannot be before from date! 📅', 'error');
-                    return;
-                }
+                // No date logic validation - accept any dates
             });
         }
 
