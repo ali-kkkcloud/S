@@ -1124,11 +1124,30 @@
 
         // Initialize app
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Employee Management Portal - Real-time Mode');
+            console.log('🚀 Employee Management Portal - Real-time Mode Starting...');
+            
+            // Initialize real-time status
+            updateRealtimeStatus();
+            
+            // Check authentication
             checkAuth();
+            
+            // Setup event listeners
             setupEventListeners();
+            
+            // Start timers
             setInterval(updateWorkingTime, 1000);
             setInterval(updateRealtimeStatus, 5000);
+            
+            // Force reload every 30 seconds if no real-time
+            setInterval(() => {
+                if (currentUser && realtimeChannelCount < 3) {
+                    console.log('🔄 Poor real-time connection, attempting reconnect...');
+                    setupRealtimeSubscriptions();
+                }
+            }, 30000);
+            
+            console.log('✅ Portal initialization complete!');
         });
 
         function setupEventListeners() {
@@ -1151,15 +1170,30 @@
         }
 
         function checkAuth() {
+            console.log('🔐 Checking authentication...');
+            
             const saved = localStorage.getItem('currentUser');
             if (saved) {
-                currentUser = JSON.parse(saved);
-                showDashboard();
-                setupNavigation();
-                loadUserData();
-                loadDashboardData();
-                setupRealtimeSubscriptions();
+                try {
+                    currentUser = JSON.parse(saved);
+                    console.log('✅ User found in localStorage:', currentUser.name);
+                    
+                    showDashboard();
+                    setupNavigation();
+                    loadUserData();
+                    
+                    setTimeout(() => {
+                        loadDashboardData();
+                        setupRealtimeSubscriptions();
+                    }, 500);
+                    
+                } catch (error) {
+                    console.error('Error parsing saved user:', error);
+                    localStorage.removeItem('currentUser');
+                    showLogin();
+                }
             } else {
+                console.log('👋 No user found, showing login');
                 showLogin();
             }
         }
@@ -1193,6 +1227,9 @@
             cleanupSubscriptions();
             console.log('🔥 Setting up COMPLETE real-time system...');
             
+            // Reset counter
+            realtimeChannelCount = 0;
+            
             const channels = [
                 { name: 'employees', table: 'employees', handler: handleEmployeeChange },
                 { name: 'tasks', table: 'tasks', handler: handleTaskChange },
@@ -1201,30 +1238,43 @@
                 { name: 'leave_requests', table: 'leave_requests', handler: handleLeaveChange }
             ];
 
-            channels.forEach(channel => {
-                const subscription = supabase
-                    .channel(`realtime-${channel.name}`)
-                    .on('postgres_changes', {
-                        event: '*',
-                        schema: 'public',
-                        table: channel.table
-                    }, (payload) => {
-                        console.log(`🔄 REAL-TIME ${channel.name.toUpperCase()}:`, payload);
-                        channel.handler(payload);
-                        showRealtimeNotification(channel.name, payload);
-                    })
-                    .subscribe((status) => {
-                        console.log(`📡 ${channel.name} channel:`, status);
-                        if (status === 'SUBSCRIBED') {
-                            realtimeChannelCount++;
-                            updateRealtimeStatus();
-                        }
-                    });
-                
-                realtimeSubscriptions.push(subscription);
+            channels.forEach((channel, index) => {
+                try {
+                    const subscription = supabase
+                        .channel(`realtime-${channel.name}-${Date.now()}-${index}`)
+                        .on('postgres_changes', {
+                            event: '*',
+                            schema: 'public',
+                            table: channel.table
+                        }, (payload) => {
+                            console.log(`🔄 REAL-TIME ${channel.name.toUpperCase()}:`, payload);
+                            channel.handler(payload);
+                            showRealtimeNotification(channel.name, payload);
+                        })
+                        .subscribe((status) => {
+                            console.log(`📡 ${channel.name} channel status:`, status);
+                            if (status === 'SUBSCRIBED') {
+                                realtimeChannelCount++;
+                                console.log(`✅ Channel ${channel.name} connected! (${realtimeChannelCount}/5)`);
+                                updateRealtimeStatus();
+                            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                                console.error(`❌ Channel ${channel.name} failed:`, status);
+                            }
+                        });
+                    
+                    realtimeSubscriptions.push(subscription);
+                } catch (error) {
+                    console.error(`Failed to setup ${channel.name} channel:`, error);
+                }
             });
 
             console.log('✅ All real-time channels initialized');
+            
+            // Force update status after 3 seconds
+            setTimeout(() => {
+                updateRealtimeStatus();
+                console.log(`🔗 Final real-time status: ${realtimeChannelCount}/5 channels active`);
+            }, 3000);
         }
 
         function showRealtimeNotification(type, payload) {
@@ -1252,21 +1302,31 @@
             const statusEl = document.getElementById('realtimeStatus');
             const connectionEl = document.getElementById('connectionStatus');
             
+            console.log(`📊 Updating real-time status: ${realtimeChannelCount}/5 channels`);
+            
+            if (!statusEl || !connectionEl) {
+                console.warn('Status elements not found');
+                return;
+            }
+            
             if (realtimeChannelCount >= 5) {
                 statusEl.className = 'realtime-status active';
                 statusEl.innerHTML = `<div class="live-dot"></div><span>Real-time Active (${realtimeChannelCount}/5)</span>`;
-                connectionEl.textContent = `Live Database (${realtimeChannelCount} channels)`;
+                connectionEl.textContent = `Live Database (${realtimeChannelCount}/5 channels)`;
                 connectionEl.style.color = '#48bb78';
+                console.log('✅ All real-time channels active!');
             } else if (realtimeChannelCount > 0) {
                 statusEl.className = 'realtime-status';
                 statusEl.innerHTML = `<div class="live-dot"></div><span>Connecting... (${realtimeChannelCount}/5)</span>`;
                 connectionEl.textContent = `Connecting... (${realtimeChannelCount}/5)`;
                 connectionEl.style.color = '#ed8936';
+                console.log(`⏳ Partial connection: ${realtimeChannelCount}/5`);
             } else {
                 statusEl.className = 'realtime-status';
                 statusEl.innerHTML = `<span>❌ Offline Mode</span>`;
                 connectionEl.textContent = 'Offline Mode';
                 connectionEl.style.color = '#e53e3e';
+                console.log('❌ No real-time connection');
             }
         }
 
@@ -1404,9 +1464,11 @@
         }
 
         function demoLogin(type) {
+            console.log(`🎯 Demo login initiated: ${type}`);
+            
             const demoUsers = {
                 admin: { 
-                    id: 'demo_admin', 
+                    id: 'demo_admin_user', 
                     name: 'Admin User', 
                     email: 'admin@demo.com', 
                     role: 'admin', 
@@ -1417,7 +1479,7 @@
                     isDemo: false
                 },
                 employee: { 
-                    id: 'demo_emp', 
+                    id: 'demo_employee_user', 
                     name: 'John Doe', 
                     email: 'john@demo.com', 
                     role: 'employee', 
@@ -1431,12 +1493,19 @@
             
             currentUser = demoUsers[type];
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            
+            console.log('✅ Demo user set:', currentUser);
+            
             showNotification(`Welcome ${currentUser.name}! Real-time mode active 🚀`, 'success');
             showDashboard();
             setupNavigation();
             loadUserData();
-            loadDashboardData();
-            setupRealtimeSubscriptions();
+            
+            // Load data with delay to ensure DOM is ready
+            setTimeout(() => {
+                loadDashboardData();
+                setupRealtimeSubscriptions();
+            }, 500);
         }
 
         function logout() {
@@ -1599,8 +1668,10 @@
         // =================================
 
         function setupNavigation() {
+            console.log('🧭 Setting up navigation for:', currentUser.role);
+            
             const navTabs = document.getElementById('navTabs');
-            const isAdmin = currentUser.role === 'admin';
+            const isAdmin = currentUser && currentUser.role === 'admin';
             
             const tabs = [
                 { id: 'employeeDashboard', label: '🏠 Dashboard', show: true },
@@ -1610,13 +1681,19 @@
                 { id: 'leaveManagement', label: '🏖️ Leave', show: true }
             ];
 
-            navTabs.innerHTML = tabs
-                .filter(tab => tab.show)
+            const visibleTabs = tabs.filter(tab => tab.show);
+            
+            navTabs.innerHTML = visibleTabs
                 .map((tab, index) => 
                     `<button class="nav-tab ${index === 0 ? 'active' : ''}" onclick="switchTab('${tab.id}')">${tab.label}</button>`
                 ).join('');
 
-            switchTab('employeeDashboard');
+            console.log('✅ Navigation tabs created:', visibleTabs.length);
+            
+            // Show first tab immediately
+            setTimeout(() => {
+                switchTab('employeeDashboard');
+            }, 100);
         }
 
         function switchTab(tabId) {
@@ -1629,7 +1706,14 @@
             });
             
             document.getElementById(tabId).classList.add('active');
-            event.target.classList.add('active');
+            
+            // Find and activate the clicked tab
+            const clickedTab = Array.from(document.querySelectorAll('.nav-tab')).find(tab => 
+                tab.onclick && tab.onclick.toString().includes(tabId)
+            );
+            if (clickedTab) {
+                clickedTab.classList.add('active');
+            }
             
             loadTabData(tabId);
         }
@@ -1661,13 +1745,40 @@
         }
 
         function loadDashboardData() {
-            loadAttendance();
-            loadMyTasks();
-            loadMySchedule();
+            console.log('🔄 Loading dashboard data...');
             
-            if (currentUser.role === 'admin') {
-                loadAdminStats();
-                loadLiveAttendance();
+            try {
+                // Load attendance first
+                loadAttendance();
+                
+                // Load other data with small delays
+                setTimeout(() => {
+                    loadMyTasks();
+                }, 200);
+                
+                setTimeout(() => {
+                    loadMySchedule();
+                }, 400);
+                
+                setTimeout(() => {
+                    loadEmployeeDashboard();
+                }, 600);
+                
+                // Admin specific data
+                if (currentUser && currentUser.role === 'admin') {
+                    setTimeout(() => {
+                        loadAdminStats();
+                    }, 800);
+                    
+                    setTimeout(() => {
+                        loadLiveAttendance();
+                    }, 1000);
+                }
+                
+                console.log('✅ Dashboard data loading initiated');
+                
+            } catch (error) {
+                console.error('Error in loadDashboardData:', error);
             }
         }
 
@@ -1754,12 +1865,27 @@
         async function loadMyTasks() {
             const container = document.getElementById('myTaskList');
             
+            if (!container) {
+                console.warn('myTaskList container not found');
+                return;
+            }
+            
             try {
-                const { data: tasks } = await supabase
+                console.log('📋 Loading tasks for user:', currentUser.id);
+                
+                const { data: tasks, error } = await supabase
                     .from('tasks')
                     .select('*')
                     .eq('assigned_to', currentUser.id)
                     .order('created_at', { ascending: false });
+                
+                if (error) {
+                    console.error('Tasks loading error:', error);
+                    container.innerHTML = '<p style="color: #e53e3e;">Error loading tasks</p>';
+                    return;
+                }
+                
+                console.log('📋 Tasks loaded:', tasks?.length || 0);
                 
                 if (tasks && tasks.length > 0) {
                     container.innerHTML = tasks.map(task => `
@@ -1779,10 +1905,17 @@
                         </div>
                     `).join('');
                     
-                    document.getElementById('totalTasks').textContent = tasks.length;
+                    // Update stats
+                    const totalTasksEl = document.getElementById('totalTasks');
+                    if (totalTasksEl) {
+                        totalTasksEl.textContent = tasks.length;
+                    }
                 } else {
                     container.innerHTML = '<p style="text-align: center; color: #666;">No tasks assigned yet</p>';
-                    document.getElementById('totalTasks').textContent = '0';
+                    const totalTasksEl = document.getElementById('totalTasks');
+                    if (totalTasksEl) {
+                        totalTasksEl.textContent = '0';
+                    }
                 }
                 
             } catch (error) {
