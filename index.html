@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Employee Management Portal</title>
+    <title>Employee Management Portal - Real-time</title>
     <style>
         * {
             margin: 0;
@@ -576,6 +576,27 @@
             100% { transform: rotate(360deg); }
         }
 
+        /* Real-time Status */
+        .realtime-status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 10px 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 999;
+        }
+
+        .realtime-status.active {
+            background: linear-gradient(45deg, #48bb78, #38a169);
+            color: white;
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .container { 
@@ -647,11 +668,18 @@
 <body>
     <!-- Notification -->
     <div id="notification" class="notification"></div>
+    
+    <!-- Real-time Status Indicator -->
+    <div id="realtimeStatus" class="realtime-status">
+        <div class="live-dot"></div>
+        <span>Connecting...</span>
+    </div>
 
     <!-- Login Page -->
     <div id="loginPage" class="login-page">
         <div class="login-box">
             <h1>🏢 Employee Portal</h1>
+            <p style="margin-bottom: 20px; color: #666; font-size: 14px;">⚡ Real-time Database System</p>
             <form id="loginForm">
                 <div class="input-group">
                     <label>📧 Email</label>
@@ -669,8 +697,11 @@
             
             <div style="margin-top: 20px;">
                 <p style="margin-bottom: 10px; color: #666;">Quick Demo Access:</p>
-                <button class="btn btn-demo" onclick="demoLogin('admin')">👨‍💼 Admin Demo</button>
-                <button class="btn btn-demo" onclick="demoLogin('employee')">👤 Employee Demo</button>
+                <button class="btn btn-demo" onclick="demoLogin('admin')">👨‍💼 Admin (Real-time Mode)</button>
+                <button class="btn btn-demo" onclick="demoLogin('employee')">👤 Employee (Real-time Mode)</button>
+                <p style="font-size: 11px; color: #888; margin-top: 10px;">
+                    ⚡ All changes sync in real-time across all devices
+                </p>
             </div>
         </div>
     </div>
@@ -684,7 +715,7 @@
                     <h1>Welcome, <span id="userName">User</span></h1>
                     <div class="live-indicator">
                         <div class="live-dot"></div>
-                        Live Dashboard
+                        <span id="connectionStatus" onclick="checkDatabaseConnection()" style="cursor: pointer; text-decoration: underline;" title="Click to test connection">Connecting...</span>
                     </div>
                 </div>
                 <div class="user-info">
@@ -893,28 +924,22 @@
                 <h3>➕ Add New Employee</h3>
                 <button class="close" onclick="closeModal('addEmployeeModal')">&times;</button>
             </div>
-            <form id="addEmployeeForm" novalidate onsubmit="return submitEmployeeForm(event)">
+            <form id="addEmployeeForm">
                 <div class="form-row">
                     <div class="input-group">
                         <label>👤 Full Name</label>
-                        <input type="text" id="empName" placeholder="John Doe">
+                        <input type="text" id="empName" placeholder="John Doe" required>
                     </div>
                     <div class="input-group">
                         <label>📧 Email</label>
-                        <input type="text" id="empEmail" placeholder="john@company.com">
+                        <input type="email" id="empEmail" placeholder="john@company.com" required>
                     </div>
                 </div>
                 <div class="form-row">
-                    <div class="input-group">
-                        <label>🔐 Password</label>
-                        <input type="text" id="empPassword" placeholder="Min 6 characters">
-                    </div>
                     <div class="input-group">
                         <label>📞 Phone</label>
                         <input type="text" id="empPhone" placeholder="+91 9876543210">
                     </div>
-                </div>
-                <div class="form-row">
                     <div class="input-group">
                         <label>🏢 Department</label>
                         <select id="empDepartment">
@@ -925,6 +950,8 @@
                             <option value="Operations">Operations</option>
                         </select>
                     </div>
+                </div>
+                <div class="form-row">
                     <div class="input-group">
                         <label>👑 Role</label>
                         <select id="empRole">
@@ -933,19 +960,16 @@
                             <option value="manager">Manager</option>
                         </select>
                     </div>
-                </div>
-                <div class="form-row">
                     <div class="input-group">
                         <label>💰 Salary</label>
-                        <input type="text" id="empSalary" placeholder="50000">
-                    </div>
-                    <div class="input-group">
-                        <label>📅 Join Date</label>
-                        <input type="date" id="empJoinDate">
+                        <input type="number" id="empSalary" placeholder="50000">
                     </div>
                 </div>
+                <div class="input-group">
+                    <label>📅 Join Date</label>
+                    <input type="date" id="empJoinDate">
+                </div>
                 <button type="submit" class="btn">Add Employee</button>
-                <button type="button" class="btn btn-info" onclick="testAddEmployee()" style="margin-top: 10px;">🔧 Test Add (Debug)</button>
             </form>
         </div>
     </div>
@@ -988,6 +1012,55 @@
                     </div>
                 </div>
                 <button type="submit" class="btn">Assign Task</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Create Roster Modal -->
+    <div id="createRosterModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📅 Create Roster</h3>
+                <button class="close" onclick="closeModal('createRosterModal')">&times;</button>
+            </div>
+            <form id="createRosterForm">
+                <div class="form-row">
+                    <div class="input-group">
+                        <label>👤 Employee</label>
+                        <select id="rosterEmployee" required>
+                            <option value="">Select Employee</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>📅 Date</label>
+                        <input type="date" id="rosterDate" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="input-group">
+                        <label>🕐 Shift</label>
+                        <select id="rosterShift" required>
+                            <option value="">Select Shift</option>
+                            <option value="morning">🌅 Morning (9 AM - 6 PM)</option>
+                            <option value="evening">🌆 Evening (2 PM - 11 PM)</option>
+                            <option value="night">🌙 Night (11 PM - 8 AM)</option>
+                            <option value="half">🕐 Half Day (9 AM - 1 PM)</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>📍 Location</label>
+                        <select id="rosterLocation">
+                            <option value="office">🏢 Office</option>
+                            <option value="remote">🏠 Remote</option>
+                            <option value="hybrid">🔄 Hybrid</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>📝 Notes</label>
+                    <textarea id="rosterNotes" rows="2" placeholder="Special instructions or notes..."></textarea>
+                </div>
+                <button type="submit" class="btn">Create Roster Entry</button>
             </form>
         </div>
     </div>
@@ -1047,111 +1120,34 @@
             totalBreakTime: 0
         };
         let realtimeSubscriptions = [];
+        let realtimeChannelCount = 0;
 
-        // Demo users
-        const demoUsers = {
-            admin: { 
-                id: 'admin_demo', 
-                name: 'Admin User', 
-                email: 'admin@demo.com', 
-                role: 'admin', 
-                department: 'Management', 
-                phone: '+91 9876543210',
-                salary: 100000,
-                join_date: '2023-01-01',
-                isDemo: true 
-            },
-            employee: { 
-                id: 'emp_demo', 
-                name: 'John Doe', 
-                email: 'john@demo.com', 
-                role: 'employee', 
-                department: 'IT', 
-                phone: '+91 9876543211',
-                salary: 50000,
-                join_date: '2023-06-01',
-                isDemo: true 
-            }
-        };
-
-        // Initialize
+        // Initialize app
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM Content Loaded');
+            console.log('🚀 Employee Management Portal - Real-time Mode');
             checkAuth();
             setupEventListeners();
             setInterval(updateWorkingTime, 1000);
-            setInterval(updateLiveData, 30000); // Update every 30 seconds
-            
-            // Additional form listener setup
-            setTimeout(() => {
-                const form = document.getElementById('addEmployeeForm');
-                if (form) {
-                    console.log('Setting up additional form listener');
-                    form.onsubmit = function(e) {
-                        console.log('Form onsubmit triggered');
-                        return handleAddEmployee(e);
-                    };
-                } else {
-                    console.log('Form still not found after timeout');
-                }
-            }, 2000);
+            setInterval(updateRealtimeStatus, 5000);
         });
 
         function setupEventListeners() {
-            console.log('Setting up event listeners...');
-            
             document.getElementById('loginForm').addEventListener('submit', handleLogin);
-            
-            // Make sure the employee form exists before adding listener
-            const employeeForm = document.getElementById('addEmployeeForm');
-            if (employeeForm) {
-                console.log('Employee form found, adding event listener');
-                employeeForm.addEventListener('submit', handleAddEmployee);
-            } else {
-                console.log('Employee form not found yet, will add listener later');
-                // Add listener after DOM is fully loaded
-                setTimeout(() => {
-                    const form = document.getElementById('addEmployeeForm');
-                    if (form) {
-                        console.log('Adding delayed employee form listener');
-                        form.addEventListener('submit', handleAddEmployee);
-                    }
-                }, 1000);
-            }
-            
-            const taskForm = document.getElementById('addTaskForm');
-            if (taskForm) {
-                taskForm.addEventListener('submit', handleAddTask);
-            }
-            
-            const leaveForm = document.getElementById('applyLeaveForm');
-            if (leaveForm) {
-                leaveForm.addEventListener('submit', handleApplyLeave);
-            }
+            document.getElementById('addEmployeeForm').addEventListener('submit', handleAddEmployee);
+            document.getElementById('addTaskForm').addEventListener('submit', handleAddTask);
+            document.getElementById('createRosterForm').addEventListener('submit', handleCreateRoster);
+            document.getElementById('applyLeaveForm').addEventListener('submit', handleApplyLeave);
 
             // Set default dates
             const today = new Date().toISOString().split('T')[0];
             const currentMonth = new Date().toISOString().substring(0, 7);
             
-            const empJoinDate = document.getElementById('empJoinDate');
-            if (empJoinDate) empJoinDate.value = today;
-            
-            const taskDueDate = document.getElementById('taskDueDate');
-            if (taskDueDate) taskDueDate.value = today;
-            
-            const leaveFromDate = document.getElementById('leaveFromDate');
-            if (leaveFromDate) leaveFromDate.value = today;
-            
-            const leaveToDate = document.getElementById('leaveToDate');
-            if (leaveToDate) leaveToDate.value = today;
-            
-            const reportMonth = document.getElementById('reportMonth');
-            if (reportMonth) reportMonth.value = currentMonth;
-
-            // Form validations (disabled)
-            setupFormValidations();
-            
-            console.log('Event listeners setup complete');
+            document.getElementById('empJoinDate').value = today;
+            document.getElementById('taskDueDate').value = today;
+            document.getElementById('rosterDate').value = today;
+            document.getElementById('leaveFromDate').value = today;
+            document.getElementById('leaveToDate').value = today;
+            document.getElementById('reportMonth').value = currentMonth;
         }
 
         function checkAuth() {
@@ -1189,70 +1185,179 @@
             }, 4000);
         }
 
-        function setupNavigation() {
-            const navTabs = document.getElementById('navTabs');
-            const isAdmin = currentUser.role === 'admin';
+        // =================================
+        // COMPREHENSIVE REAL-TIME SYSTEM
+        // =================================
+
+        function setupRealtimeSubscriptions() {
+            cleanupSubscriptions();
+            console.log('🔥 Setting up COMPLETE real-time system...');
             
-            const tabs = [
-                { id: 'employeeDashboard', label: '🏠 Dashboard', show: true },
-                { id: 'employeeManagement', label: '👥 Employees', show: isAdmin },
-                { id: 'attendanceReports', label: '📊 Reports', show: isAdmin },
-                { id: 'taskManagement', label: '📋 Tasks', show: isAdmin },
-                { id: 'leaveManagement', label: '🏖️ Leave', show: true }
+            const channels = [
+                { name: 'employees', table: 'employees', handler: handleEmployeeChange },
+                { name: 'tasks', table: 'tasks', handler: handleTaskChange },
+                { name: 'attendance', table: 'attendance', handler: handleAttendanceChange },
+                { name: 'roster', table: 'roster', handler: handleRosterChange },
+                { name: 'leave_requests', table: 'leave_requests', handler: handleLeaveChange }
             ];
 
-            navTabs.innerHTML = tabs
-                .filter(tab => tab.show)
-                .map((tab, index) => 
-                    `<button class="nav-tab ${index === 0 ? 'active' : ''}" onclick="switchTab('${tab.id}')">${tab.label}</button>`
-                ).join('');
+            channels.forEach(channel => {
+                const subscription = supabase
+                    .channel(`realtime-${channel.name}`)
+                    .on('postgres_changes', {
+                        event: '*',
+                        schema: 'public',
+                        table: channel.table
+                    }, (payload) => {
+                        console.log(`🔄 REAL-TIME ${channel.name.toUpperCase()}:`, payload);
+                        channel.handler(payload);
+                        showRealtimeNotification(channel.name, payload);
+                    })
+                    .subscribe((status) => {
+                        console.log(`📡 ${channel.name} channel:`, status);
+                        if (status === 'SUBSCRIBED') {
+                            realtimeChannelCount++;
+                            updateRealtimeStatus();
+                        }
+                    });
+                
+                realtimeSubscriptions.push(subscription);
+            });
 
-            // Show first tab
-            switchTab('employeeDashboard');
+            console.log('✅ All real-time channels initialized');
         }
 
-        function switchTab(tabId) {
-            // Hide all tabs
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
+        function showRealtimeNotification(type, payload) {
+            const icons = {
+                employees: '👥',
+                tasks: '📋', 
+                attendance: '⏰',
+                roster: '📅',
+                leave_requests: '🏖️'
+            };
+
+            const actions = {
+                INSERT: 'Added',
+                UPDATE: 'Updated', 
+                DELETE: 'Removed'
+            };
+
+            const icon = icons[type] || '🔄';
+            const action = actions[payload.eventType] || 'Changed';
             
-            // Remove active class from nav tabs
-            document.querySelectorAll('.nav-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // Show selected tab
-            document.getElementById(tabId).classList.add('active');
-            
-            // Add active class to clicked nav tab
-            event.target.classList.add('active');
-            
-            // Load tab-specific data
-            loadTabData(tabId);
+            showNotification(`${icon} ${type.charAt(0).toUpperCase() + type.slice(1)} ${action}!`, 'info');
         }
 
-        function loadTabData(tabId) {
-            switch(tabId) {
-                case 'employeeDashboard':
-                    loadEmployeeDashboard();
-                    break;
-                case 'employeeManagement':
-                    loadEmployeeManagement();
-                    break;
-                case 'attendanceReports':
-                    loadAttendanceReport();
-                    break;
-                case 'taskManagement':
-                    loadTaskManagement();
-                    break;
-                case 'leaveManagement':
-                    loadLeaveManagement();
-                    break;
+        function updateRealtimeStatus() {
+            const statusEl = document.getElementById('realtimeStatus');
+            const connectionEl = document.getElementById('connectionStatus');
+            
+            if (realtimeChannelCount >= 5) {
+                statusEl.className = 'realtime-status active';
+                statusEl.innerHTML = `<div class="live-dot"></div><span>Real-time Active (${realtimeChannelCount}/5)</span>`;
+                connectionEl.textContent = `Live Database (${realtimeChannelCount} channels)`;
+                connectionEl.style.color = '#48bb78';
+            } else if (realtimeChannelCount > 0) {
+                statusEl.className = 'realtime-status';
+                statusEl.innerHTML = `<div class="live-dot"></div><span>Connecting... (${realtimeChannelCount}/5)</span>`;
+                connectionEl.textContent = `Connecting... (${realtimeChannelCount}/5)`;
+                connectionEl.style.color = '#ed8936';
+            } else {
+                statusEl.className = 'realtime-status';
+                statusEl.innerHTML = `<span>❌ Offline Mode</span>`;
+                connectionEl.textContent = 'Offline Mode';
+                connectionEl.style.color = '#e53e3e';
             }
         }
 
-        // Authentication Functions
+        function cleanupSubscriptions() {
+            realtimeSubscriptions.forEach(sub => sub.unsubscribe());
+            realtimeSubscriptions = [];
+            realtimeChannelCount = 0;
+            updateRealtimeStatus();
+        }
+
+        // =================================
+        // REAL-TIME EVENT HANDLERS
+        // =================================
+
+        function handleEmployeeChange(payload) {
+            console.log('👥 Employee real-time change:', payload);
+            
+            // Reload employee lists
+            loadEmployeeManagement();
+            loadAdminStats();
+            
+            // Update dropdowns
+            updateEmployeeDropdowns();
+            
+            // Show notification
+            if (payload.eventType === 'INSERT') {
+                showNotification(`New employee: ${payload.new.name} 🎉`, 'success');
+            } else if (payload.eventType === 'DELETE') {
+                showNotification('Employee removed 👋', 'info');
+            }
+        }
+
+        function handleTaskChange(payload) {
+            console.log('📋 Task real-time change:', payload);
+            
+            // Reload task data
+            loadMyTasks();
+            loadTaskManagement();
+            
+            // Update stats
+            if (payload.eventType === 'INSERT') {
+                showNotification(`New task assigned! 📝`, 'info');
+            }
+        }
+
+        function handleAttendanceChange(payload) {
+            console.log('⏰ Attendance real-time change:', payload);
+            
+            // Reload attendance data
+            loadAdminStats();
+            loadLiveAttendance();
+            
+            // If it's current user's attendance
+            if (payload.new && payload.new.employee_id === currentUser.id) {
+                loadAttendance();
+            }
+        }
+
+        function handleRosterChange(payload) {
+            console.log('📅 Roster real-time change:', payload);
+            
+            // Reload schedule data
+            loadMySchedule();
+            
+            if (payload.eventType === 'INSERT') {
+                showNotification('New roster assignment! 📅', 'info');
+            }
+        }
+
+        function handleLeaveChange(payload) {
+            console.log('🏖️ Leave real-time change:', payload);
+            
+            // Reload leave data
+            loadLeaveManagement();
+            
+            if (payload.eventType === 'INSERT') {
+                showNotification('New leave request! 🏖️', 'info');
+            } else if (payload.eventType === 'UPDATE' && payload.new.status !== payload.old.status) {
+                const status = payload.new.status;
+                if (status === 'approved') {
+                    showNotification('Leave approved! ✅', 'success');
+                } else if (status === 'rejected') {
+                    showNotification('Leave rejected! ❌', 'error');
+                }
+            }
+        }
+
+        // =================================
+        // AUTHENTICATION FUNCTIONS
+        // =================================
+
         async function handleLogin(e) {
             e.preventDefault();
             const email = document.getElementById('email').value;
@@ -1264,7 +1369,6 @@
                 const { data, error } = await supabase.auth.signInWithPassword({ email, password });
                 if (error) throw error;
                 
-                // Get user profile
                 const { data: profile } = await supabase
                     .from('employees')
                     .select('*')
@@ -1290,21 +1394,44 @@
                     loadUserData();
                     loadDashboardData();
                     setupRealtimeSubscriptions();
-                } else {
-                    throw new Error('User profile not found');
                 }
             } catch (error) {
                 console.error('Login error:', error);
-                showNotification('Login failed. Please try demo login. ❌', 'error');
+                showNotification('Login failed. Try demo login. ❌', 'error');
             } finally {
                 hideLoading('loginBtnText', 'loginLoader');
             }
         }
 
         function demoLogin(type) {
+            const demoUsers = {
+                admin: { 
+                    id: 'demo_admin', 
+                    name: 'Admin User', 
+                    email: 'admin@demo.com', 
+                    role: 'admin', 
+                    department: 'Management', 
+                    phone: '+91 9876543210',
+                    salary: 100000,
+                    join_date: '2023-01-01',
+                    isDemo: false
+                },
+                employee: { 
+                    id: 'demo_emp', 
+                    name: 'John Doe', 
+                    email: 'john@demo.com', 
+                    role: 'employee', 
+                    department: 'IT', 
+                    phone: '+91 9876543211',
+                    salary: 50000,
+                    join_date: '2023-06-01',
+                    isDemo: false
+                }
+            };
+            
             currentUser = demoUsers[type];
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
-            showNotification(`Welcome ${currentUser.name}! 🎉`, 'success');
+            showNotification(`Welcome ${currentUser.name}! Real-time mode active 🚀`, 'success');
             showDashboard();
             setupNavigation();
             loadUserData();
@@ -1313,7 +1440,12 @@
         }
 
         function logout() {
-            localStorage.clear();
+            localStorage.removeItem('currentUser');
+            if (currentUser) {
+                const today = new Date().toISOString().split('T')[0];
+                localStorage.removeItem(`attendance_${currentUser.id}_${today}`);
+            }
+            
             currentUser = null;
             attendanceData = {
                 isCheckedIn: false,
@@ -1325,6 +1457,189 @@
             cleanupSubscriptions();
             showNotification('Logged out successfully! 👋', 'info');
             showLogin();
+        }
+
+        // =================================
+        // DATABASE OPERATIONS
+        // =================================
+
+        async function handleAddEmployee(e) {
+            e.preventDefault();
+            
+            const employeeData = {
+                name: document.getElementById('empName').value,
+                email: document.getElementById('empEmail').value,
+                phone: document.getElementById('empPhone').value,
+                department: document.getElementById('empDepartment').value,
+                role: document.getElementById('empRole').value,
+                salary: parseFloat(document.getElementById('empSalary').value) || 0,
+                join_date: document.getElementById('empJoinDate').value
+            };
+            
+            try {
+                const { data, error } = await supabase
+                    .from('employees')
+                    .insert([employeeData])
+                    .select();
+
+                if (error) throw error;
+                
+                showNotification('Employee added successfully! 🎉', 'success');
+                closeModal('addEmployeeModal');
+                e.target.reset();
+                
+            } catch (error) {
+                console.error('Add employee error:', error);
+                showNotification('Failed to add employee ❌', 'error');
+            }
+        }
+
+        async function handleAddTask(e) {
+            e.preventDefault();
+            
+            const taskData = {
+                title: document.getElementById('taskTitle').value,
+                description: document.getElementById('taskDescription').value,
+                priority: document.getElementById('taskPriority').value,
+                due_date: document.getElementById('taskDueDate').value,
+                assigned_to: document.getElementById('taskAssignTo').value,
+                status: 'pending',
+                created_by: currentUser.id
+            };
+            
+            try {
+                const { error } = await supabase
+                    .from('tasks')
+                    .insert([taskData]);
+
+                if (error) throw error;
+                
+                showNotification('Task assigned successfully! 🎉', 'success');
+                closeModal('addTaskModal');
+                e.target.reset();
+                
+            } catch (error) {
+                console.error('Add task error:', error);
+                showNotification('Failed to assign task ❌', 'error');
+            }
+        }
+
+        async function handleCreateRoster(e) {
+            e.preventDefault();
+            
+            const rosterData = {
+                employee_id: document.getElementById('rosterEmployee').value,
+                date: document.getElementById('rosterDate').value,
+                shift: document.getElementById('rosterShift').value,
+                location: document.getElementById('rosterLocation').value,
+                notes: document.getElementById('rosterNotes').value,
+                created_by: currentUser.id
+            };
+            
+            try {
+                const { error } = await supabase
+                    .from('roster')
+                    .upsert([rosterData]);
+
+                if (error) throw error;
+                
+                showNotification('Roster created successfully! 📅', 'success');
+                closeModal('createRosterModal');
+                e.target.reset();
+                
+            } catch (error) {
+                console.error('Create roster error:', error);
+                showNotification('Failed to create roster ❌', 'error');
+            }
+        }
+
+        async function handleApplyLeave(e) {
+            e.preventDefault();
+            
+            const leaveData = {
+                employee_id: currentUser.id,
+                leave_type: document.getElementById('leaveType').value,
+                from_date: document.getElementById('leaveFromDate').value,
+                to_date: document.getElementById('leaveToDate').value,
+                reason: document.getElementById('leaveReason').value,
+                status: 'pending'
+            };
+            
+            try {
+                const { error } = await supabase
+                    .from('leave_requests')
+                    .insert([leaveData]);
+
+                if (error) throw error;
+                
+                showNotification('Leave application submitted! 🏖️', 'success');
+                closeModal('applyLeaveModal');
+                e.target.reset();
+                
+            } catch (error) {
+                console.error('Apply leave error:', error);
+                showNotification('Failed to submit leave application ❌', 'error');
+            }
+        }
+
+        // =================================
+        // DATA LOADING FUNCTIONS
+        // =================================
+
+        function setupNavigation() {
+            const navTabs = document.getElementById('navTabs');
+            const isAdmin = currentUser.role === 'admin';
+            
+            const tabs = [
+                { id: 'employeeDashboard', label: '🏠 Dashboard', show: true },
+                { id: 'employeeManagement', label: '👥 Employees', show: isAdmin },
+                { id: 'attendanceReports', label: '📊 Reports', show: isAdmin },
+                { id: 'taskManagement', label: '📋 Tasks', show: isAdmin },
+                { id: 'leaveManagement', label: '🏖️ Leave', show: true }
+            ];
+
+            navTabs.innerHTML = tabs
+                .filter(tab => tab.show)
+                .map((tab, index) => 
+                    `<button class="nav-tab ${index === 0 ? 'active' : ''}" onclick="switchTab('${tab.id}')">${tab.label}</button>`
+                ).join('');
+
+            switchTab('employeeDashboard');
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+            
+            loadTabData(tabId);
+        }
+
+        function loadTabData(tabId) {
+            switch(tabId) {
+                case 'employeeDashboard':
+                    loadEmployeeDashboard();
+                    break;
+                case 'employeeManagement':
+                    loadEmployeeManagement();
+                    break;
+                case 'attendanceReports':
+                    loadAttendanceReport();
+                    break;
+                case 'taskManagement':
+                    loadTaskManagement();
+                    break;
+                case 'leaveManagement':
+                    loadLeaveManagement();
+                    break;
+            }
         }
 
         function loadUserData() {
@@ -1344,597 +1659,71 @@
             }
         }
 
-        // Real-time Subscriptions
-        function setupRealtimeSubscriptions() {
-            cleanupSubscriptions();
-            
-            if (currentUser.isDemo) return; // Skip for demo users
-            
-            // Subscribe to attendance changes
-            const attendanceSubscription = supabase
-                .channel('attendance-changes')
-                .on('postgres_changes', {
-                    event: '*',
-                    schema: 'public',
-                    table: 'attendance'
-                }, handleAttendanceChange)
-                .subscribe();
-            
-            realtimeSubscriptions.push(attendanceSubscription);
-
-            // Subscribe to task changes
-            const taskSubscription = supabase
-                .channel('task-changes')
-                .on('postgres_changes', {
-                    event: '*',
-                    schema: 'public',
-                    table: 'tasks'
-                }, handleTaskChange)
-                .subscribe();
-            
-            realtimeSubscriptions.push(taskSubscription);
-
-            // Subscribe to employee changes (admin only)
-            if (currentUser.role === 'admin') {
-                const employeeSubscription = supabase
-                    .channel('employee-changes')
-                    .on('postgres_changes', {
-                        event: '*',
-                        schema: 'public',
-                        table: 'employees'
-                    }, handleEmployeeChange)
-                    .subscribe();
-                
-                realtimeSubscriptions.push(employeeSubscription);
-            }
-        }
-
-        function cleanupSubscriptions() {
-            realtimeSubscriptions.forEach(subscription => {
-                subscription.unsubscribe();
-            });
-            realtimeSubscriptions = [];
-        }
-
-        function handleAttendanceChange(payload) {
-            console.log('Attendance change:', payload);
-            if (currentUser.role === 'admin') {
-                loadAdminStats();
-                loadLiveAttendance();
-            }
-            if (payload.new && payload.new.employee_id === currentUser.id) {
-                loadAttendance();
-            }
-        }
-
-        function handleTaskChange(payload) {
-            console.log('Task change:', payload);
-            loadMyTasks();
-            if (currentUser.role === 'admin') {
-                loadTaskManagement();
-            }
-        }
-
-        function handleEmployeeChange(payload) {
-            console.log('Employee change:', payload);
-            if (currentUser.role === 'admin') {
-                loadEmployeeManagement();
-                loadAdminStats();
-            }
-        }
-
-        // Attendance Functions
-        function loadAttendance() {
-            const today = new Date().toISOString().split('T')[0];
-            const saved = localStorage.getItem(`attendance_${currentUser.id}_${today}`);
-            if (saved) {
-                attendanceData = JSON.parse(saved);
-                if (attendanceData.checkInTime) {
-                    attendanceData.checkInTime = new Date(attendanceData.checkInTime);
-                }
-                if (attendanceData.breakStart) {
-                    attendanceData.breakStart = new Date(attendanceData.breakStart);
-                }
-            }
-            updateAttendanceUI();
-        }
-
-        function saveAttendance() {
-            const today = new Date().toISOString().split('T')[0];
-            localStorage.setItem(`attendance_${currentUser.id}_${today}`, JSON.stringify(attendanceData));
-        }
-
-        async function checkIn() {
-            try {
-                attendanceData.isCheckedIn = true;
-                attendanceData.checkInTime = new Date();
-                
-                if (!currentUser.isDemo) {
-                    await supabase.from('attendance').upsert({
-                        employee_id: currentUser.id,
-                        date: new Date().toISOString().split('T')[0],
-                        check_in: attendanceData.checkInTime.toTimeString().split(' ')[0],
-                        status: 'present'
-                    });
-                }
-                
-                saveAttendance();
-                updateAttendanceUI();
-                showNotification('Checked in successfully! ✅', 'success');
-            } catch (error) {
-                console.error('Check-in error:', error);
-                showNotification('Check-in failed ❌', 'error');
-            }
-        }
-
-        async function checkOut() {
-            try {
-                const checkOutTime = new Date();
-                const totalMs = checkOutTime - attendanceData.checkInTime - attendanceData.totalBreakTime;
-                const totalHours = Math.round((totalMs / (1000 * 60 * 60)) * 100) / 100;
-                
-                if (!currentUser.isDemo && attendanceData.checkInTime) {
-                    await supabase.from('attendance')
-                        .update({
-                            check_out: checkOutTime.toTimeString().split(' ')[0],
-                            total_hours: totalHours,
-                            break_time: Math.round(attendanceData.totalBreakTime / (1000 * 60))
-                        })
-                        .eq('employee_id', currentUser.id)
-                        .eq('date', new Date().toISOString().split('T')[0]);
-                }
-                
-                attendanceData = {
-                    isCheckedIn: false,
-                    isOnBreak: false,
-                    checkInTime: null,
-                    breakStart: null,
-                    totalBreakTime: 0
-                };
-                
-                saveAttendance();
-                updateAttendanceUI();
-                showNotification('Checked out successfully! 🏁', 'success');
-            } catch (error) {
-                console.error('Check-out error:', error);
-                showNotification('Check-out failed ❌', 'error');
-            }
-        }
-
-        function toggleBreak() {
-            if (!attendanceData.isCheckedIn) return;
-            
-            if (attendanceData.isOnBreak) {
-                // End break
-                const breakDuration = new Date() - attendanceData.breakStart;
-                attendanceData.totalBreakTime += breakDuration;
-                attendanceData.isOnBreak = false;
-                attendanceData.breakStart = null;
-                showNotification('Break ended ⏰', 'info');
-            } else {
-                // Start break
-                attendanceData.isOnBreak = true;
-                attendanceData.breakStart = new Date();
-                showNotification('Break started ☕', 'info');
-            }
-            
-            saveAttendance();
-            updateAttendanceUI();
-        }
-
-        function updateAttendanceUI() {
-            const checkInBtn = document.getElementById('checkInBtn');
-            const checkOutBtn = document.getElementById('checkOutBtn');
-            const breakBtn = document.getElementById('breakBtn');
-            const status = document.getElementById('attendanceStatus');
-            const checkInTimeEl = document.getElementById('checkInTime');
-            const checkOutTimeEl = document.getElementById('checkOutTime');
-            
-            // Update buttons
-            checkInBtn.disabled = attendanceData.isCheckedIn;
-            checkOutBtn.disabled = !attendanceData.isCheckedIn;
-            breakBtn.disabled = !attendanceData.isCheckedIn;
-            
-            if (attendanceData.isCheckedIn) {
-                checkInBtn.textContent = '✅ Checked In';
-                breakBtn.textContent = attendanceData.isOnBreak ? 'End Break' : 'Start Break';
-            } else {
-                checkInBtn.textContent = 'Check In';
-                breakBtn.textContent = 'Break';
-            }
-            
-            // Update status
-            if (attendanceData.isCheckedIn) {
-                if (attendanceData.isOnBreak) {
-                    status.className = 'status-badge status-break';
-                    status.textContent = '☕ On Break';
-                } else {
-                    status.className = 'status-badge status-working';
-                    status.textContent = '💼 Working';
-                }
-            } else {
-                status.className = 'status-badge status-out';
-                status.textContent = '🏠 Not Checked In';
-            }
-            
-            // Update times
-            if (attendanceData.checkInTime) {
-                checkInTimeEl.textContent = attendanceData.checkInTime.toTimeString().substr(0, 5);
-            } else {
-                checkInTimeEl.textContent = '--:--';
-            }
-            
-            checkOutTimeEl.textContent = '--:--';
-        }
-
-        function updateWorkingTime() {
-            if (attendanceData.isCheckedIn && attendanceData.checkInTime) {
-                const now = new Date();
-                let workingMs = now - attendanceData.checkInTime - attendanceData.totalBreakTime;
-                
-                if (attendanceData.isOnBreak && attendanceData.breakStart) {
-                    const currentBreakMs = now - attendanceData.breakStart;
-                    workingMs -= currentBreakMs;
-                }
-                
-                const hours = Math.floor(workingMs / (1000 * 60 * 60));
-                const minutes = Math.floor((workingMs % (1000 * 60 * 60)) / (1000 * 60));
-                
-                const timeStr = `${hours}h ${minutes}m`;
-                document.getElementById('workingTime').textContent = timeStr;
-                document.getElementById('todayHours').textContent = timeStr;
-                
-                // Update break time
-                let totalBreakMs = attendanceData.totalBreakTime;
-                if (attendanceData.isOnBreak && attendanceData.breakStart) {
-                    totalBreakMs += (now - attendanceData.breakStart);
-                }
-                const breakHours = Math.floor(totalBreakMs / (1000 * 60 * 60));
-                const breakMinutes = Math.floor((totalBreakMs % (1000 * 60 * 60)) / (1000 * 60));
-                document.getElementById('breakTime').textContent = `${breakHours}h ${breakMinutes}m`;
-            } else {
-                document.getElementById('workingTime').textContent = '0h 0m';
-                document.getElementById('todayHours').textContent = '0h 0m';
-                document.getElementById('breakTime').textContent = '0h 0m';
-            }
-        }
-
-        // Employee Dashboard Functions
-        async function loadEmployeeDashboard() {
-            try {
-                // Load this week hours
-                const weekStart = new Date();
-                weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-                const weekEnd = new Date(weekStart);
-                weekEnd.setDate(weekEnd.getDate() + 6);
-                
-                if (!currentUser.isDemo) {
-                    const { data: weekAttendance } = await supabase
-                        .from('attendance')
-                        .select('total_hours')
-                        .eq('employee_id', currentUser.id)
-                        .gte('date', weekStart.toISOString().split('T')[0])
-                        .lte('date', weekEnd.toISOString().split('T')[0]);
-                    
-                    const totalWeekHours = weekAttendance?.reduce((sum, record) => sum + (record.total_hours || 0), 0) || 0;
-                    document.getElementById('thisWeekHours').textContent = `${Math.floor(totalWeekHours)}h ${Math.floor((totalWeekHours % 1) * 60)}m`;
-                } else {
-                    document.getElementById('thisWeekHours').textContent = '32h 15m';
-                }
-                
-                // Load active tasks count
-                await loadMyTasks();
-                
-            } catch (error) {
-                console.error('Error loading employee dashboard:', error);
-            }
-        }
-
-        // Admin Functions
-        async function loadAdminStats() {
-            try {
-                if (currentUser.isDemo) {
-                    document.getElementById('totalEmployees').textContent = '25';
-                    document.getElementById('presentToday').textContent = '22';
-                    document.getElementById('absentToday').textContent = '3';
-                    document.getElementById('onBreak').textContent = '5';
-                    return;
-                }
-
-                // Get total employees
-                const { data: employees } = await supabase
-                    .from('employees')
-                    .select('id');
-                
-                // Get today's attendance
-                const today = new Date().toISOString().split('T')[0];
-                const { data: attendance } = await supabase
-                    .from('attendance')
-                    .select('status')
-                    .eq('date', today);
-                
-                const totalEmployees = employees?.length || 0;
-                const presentToday = attendance?.filter(a => a.status === 'present').length || 0;
-                const absentToday = totalEmployees - presentToday;
-                
-                document.getElementById('totalEmployees').textContent = totalEmployees;
-                document.getElementById('presentToday').textContent = presentToday;
-                document.getElementById('absentToday').textContent = absentToday;
-                document.getElementById('onBreak').textContent = '0'; // This would need real-time tracking
-                
-            } catch (error) {
-                console.error('Error loading admin stats:', error);
-            }
-        }
-
-        async function loadLiveAttendance() {
-            const container = document.getElementById('liveAttendance');
-            
-            try {
-                if (currentUser.isDemo) {
-                    container.innerHTML = `
-                        <div style="max-height: 300px; overflow-y: auto;">
-                            <div class="employee-card" style="margin-bottom: 10px; padding: 15px;">
-                                <div>
-                                    <h4>John Smith</h4>
-                                    <p>IT Department</p>
-                                </div>
-                                <span class="status-badge status-working">💼 Working</span>
-                            </div>
-                            <div class="employee-card" style="margin-bottom: 10px; padding: 15px;">
-                                <div>
-                                    <h4>Sarah Johnson</h4>
-                                    <p>HR Department</p>
-                                </div>
-                                <span class="status-badge status-break">☕ On Break</span>
-                            </div>
-                            <div class="employee-card" style="margin-bottom: 10px; padding: 15px;">
-                                <div>
-                                    <h4>Mike Wilson</h4>
-                                    <p>Finance Department</p>
-                                </div>
-                                <span class="status-badge status-out">🏠 Not Checked In</span>
-                            </div>
-                        </div>
-                    `;
-                    return;
-                }
-
-                const today = new Date().toISOString().split('T')[0];
-                const { data: liveData } = await supabase
-                    .from('employees')
-                    .select(`
-                        name, 
-                        department,
-                        attendance!left(status, check_in, check_out)
-                    `)
-                    .eq('attendance.date', today);
-
-                if (!liveData || liveData.length === 0) {
-                    container.innerHTML = '<p style="text-align: center; color: #666;">No attendance data for today</p>';
-                    return;
-                }
-
-                container.innerHTML = `
-                    <div style="max-height: 300px; overflow-y: auto;">
-                        ${liveData.map(emp => `
-                            <div class="employee-card" style="margin-bottom: 10px; padding: 15px;">
-                                <div>
-                                    <h4>${emp.name}</h4>
-                                    <p>${emp.department} Department</p>
-                                </div>
-                                <span class="status-badge ${emp.attendance && emp.attendance.length > 0 && emp.attendance[0].status === 'present' ? 'status-working' : 'status-out'}">
-                                    ${emp.attendance && emp.attendance.length > 0 && emp.attendance[0].status === 'present' ? '💼 Working' : '🏠 Not Checked In'}
-                                </span>
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
-                
-            } catch (error) {
-                console.error('Error loading live attendance:', error);
-                container.innerHTML = '<p style="text-align: center; color: #e53e3e;">Error loading attendance data</p>';
-            }
-        }
-
-        // Employee Management Functions
         async function loadEmployeeManagement() {
             const container = document.getElementById('employeeList');
             
             try {
-                if (currentUser.isDemo) {
-                    console.log('Loading demo employees...');
-                    
-                    // Get demo employees from localStorage
-                    let demoEmployees = JSON.parse(localStorage.getItem('demoEmployees') || '[]');
-                    
-                    // Add default demo employees if none exist
-                    if (demoEmployees.length === 0) {
-                        demoEmployees = [
-                            {
-                                id: 'emp1',
-                                name: 'John Smith',
-                                email: 'john.smith@company.com',
-                                phone: '+91 9876543210',
-                                department: 'IT',
-                                role: 'employee',
-                                salary: 55000,
-                                join_date: '2023-01-15'
-                            },
-                            {
-                                id: 'emp2',
-                                name: 'Sarah Johnson',
-                                email: 'sarah.johnson@company.com',
-                                phone: '+91 9876543211',
-                                department: 'HR',
-                                role: 'manager',
-                                salary: 75000,
-                                join_date: '2022-08-20'
-                            }
-                        ];
-                        localStorage.setItem('demoEmployees', JSON.stringify(demoEmployees));
-                    }
-                    
-                    console.log('Demo employees:', demoEmployees);
-                    
-                    container.innerHTML = demoEmployees.map(emp => `
+                const { data: employees, error } = await supabase
+                    .from('employees')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                if (employees && employees.length > 0) {
+                    container.innerHTML = `
+                        <div style="margin-bottom: 15px; padding: 10px; background: #e6f7ff; border-radius: 8px; text-align: center;">
+                            <strong>⚡ Real-time Database: ${employees.length} employees</strong>
+                        </div>
+                    ` + employees.map(emp => `
                         <div class="employee-card">
                             <div class="employee-info">
                                 <h4>${emp.name}</h4>
                                 <p>📧 ${emp.email} | 🏢 ${emp.department} | 👤 ${emp.role}</p>
-                                <p>📞 ${emp.phone} | 💰 ₹${emp.salary} | 📅 Joined: ${emp.join_date}</p>
+                                <p>📞 ${emp.phone || 'N/A'} | 💰 ₹${emp.salary || 'N/A'} | 📅 ${emp.join_date || 'N/A'}</p>
                             </div>
                             <div class="employee-actions">
-                                <button class="btn-small btn-info" onclick="editEmployee('${emp.id}')">✏️ Edit</button>
                                 <button class="btn-small btn-danger" onclick="deleteEmployee('${emp.id}')">🗑️ Delete</button>
                             </div>
                         </div>
                     `).join('');
-                    
-                    // Load employees in task assignment dropdown
-                    const taskAssignSelect = document.getElementById('taskAssignTo');
-                    if (taskAssignSelect) {
-                        const options = demoEmployees.map(emp => `<option value="${emp.id}">${emp.name}</option>`).join('');
-                        taskAssignSelect.innerHTML = '<option value="">Select Employee</option>' + options;
-                    }
-                    
-                    console.log('Demo employees loaded successfully');
-                    return;
-                }
 
-                const { data: employees, error } = await supabase
-                    .from('employees')
-                    .select('*')
-                    .order('name');
-
-                if (error) throw error;
-
-                if (!employees || employees.length === 0) {
+                    updateEmployeeDropdowns();
+                } else {
                     container.innerHTML = '<p style="text-align: center; color: #666;">No employees found</p>';
-                    return;
-                }
-
-                container.innerHTML = employees.map(emp => `
-                    <div class="employee-card">
-                        <div class="employee-info">
-                            <h4>${emp.name}</h4>
-                            <p>📧 ${emp.email} | 🏢 ${emp.department} | 👤 ${emp.role}</p>
-                            <p>📞 ${emp.phone || 'N/A'} | 💰 ₹${emp.salary || 'N/A'} | 📅 Joined: ${emp.join_date || 'N/A'}</p>
-                        </div>
-                        <div class="employee-actions">
-                            <button class="btn-small btn-info" onclick="editEmployee('${emp.id}')">✏️ Edit</button>
-                            <button class="btn-small btn-danger" onclick="deleteEmployee('${emp.id}')">🗑️ Delete</button>
-                        </div>
-                    </div>
-                `).join('');
-
-                // Load employees in dropdowns
-                const options = employees.map(emp => `<option value="${emp.id}">${emp.name}</option>`).join('');
-                const taskAssignSelect = document.getElementById('taskAssignTo');
-                if (taskAssignSelect) {
-                    taskAssignSelect.innerHTML = '<option value="">Select Employee</option>' + options;
                 }
                 
             } catch (error) {
                 console.error('Error loading employees:', error);
-                container.innerHTML = '<p style="text-align: center; color: #e53e3e;">Error loading employees</p>';
+                container.innerHTML = '<p style="color: #e53e3e;">Error loading employees</p>';
             }
         }
 
-        async function handleAddEmployee(e) {
-            e.preventDefault();
-            
-            console.log('Form submitted - handleAddEmployee called');
-            
-            // Get all form data
-            const employeeData = {
-                id: 'emp_' + Date.now(), // Generate unique ID
-                name: document.getElementById('empName').value || 'New Employee',
-                email: document.getElementById('empEmail').value || 'email@company.com',
-                password: document.getElementById('empPassword').value || 'password123',
-                phone: document.getElementById('empPhone').value || '1234567890',
-                department: document.getElementById('empDepartment').value || 'IT',
-                role: document.getElementById('empRole').value || 'employee',
-                salary: parseFloat(document.getElementById('empSalary').value) || 50000,
-                join_date: document.getElementById('empJoinDate').value || '2024-01-01'
-            };
-            
-            console.log('Employee data:', employeeData);
-            
+        async function updateEmployeeDropdowns() {
             try {
-                if (currentUser && currentUser.isDemo) {
-                    // For demo users - store in localStorage and update UI
-                    console.log('Demo mode - adding to localStorage');
-                    
-                    let demoEmployees = JSON.parse(localStorage.getItem('demoEmployees') || '[]');
-                    demoEmployees.push(employeeData);
-                    localStorage.setItem('demoEmployees', JSON.stringify(demoEmployees));
-                    
-                    console.log('Demo employees updated:', demoEmployees);
-                    
-                    closeModal('addEmployeeModal');
-                    e.target.reset();
-                    showNotification('Employee added successfully! 🎉', 'success');
-                    
-                    // Force reload employee list
-                    setTimeout(() => {
-                        loadEmployeeManagement();
-                    }, 500);
-                    
-                } else if (currentUser && !currentUser.isDemo) {
-                    // For real users - add to database
-                    console.log('Real mode - adding to database');
-                    
-                    const { error: dbError } = await supabase
-                        .from('employees')
-                        .insert([{
-                            name: employeeData.name,
-                            email: employeeData.email,
-                            phone: employeeData.phone,
-                            department: employeeData.department,
-                            role: employeeData.role,
-                            salary: employeeData.salary,
-                            join_date: employeeData.join_date
-                        }]);
+                const { data: employees } = await supabase
+                    .from('employees')
+                    .select('id, name')
+                    .order('name');
 
-                    if (dbError) {
-                        console.error('Database error:', dbError);
-                        throw dbError;
-                    }
-                    
-                    closeModal('addEmployeeModal');
-                    loadEmployeeManagement();
-                    showNotification('Employee added successfully! 🎉', 'success');
-                    e.target.reset();
-                } else {
-                    console.log('No current user found');
-                    showNotification('Please login first!', 'error');
-                }
+                const options = employees?.map(emp => `<option value="${emp.id}">${emp.name}</option>`).join('') || '';
                 
+                const selects = ['taskAssignTo', 'rosterEmployee'];
+                selects.forEach(id => {
+                    const select = document.getElementById(id);
+                    if (select) {
+                        select.innerHTML = '<option value="">Select Employee</option>' + options;
+                    }
+                });
             } catch (error) {
-                console.error('Add employee error:', error);
-                showNotification('Failed to add employee ❌', 'error');
+                console.error('Error updating dropdowns:', error);
             }
-            
-            return false; // Prevent default form submission
         }
 
         async function deleteEmployee(employeeId) {
             if (!confirm('Are you sure you want to delete this employee?')) return;
             
             try {
-                if (currentUser.isDemo) {
-                    console.log('Demo mode - deleting from localStorage');
-                    
-                    let demoEmployees = JSON.parse(localStorage.getItem('demoEmployees') || '[]');
-                    demoEmployees = demoEmployees.filter(emp => emp.id !== employeeId);
-                    localStorage.setItem('demoEmployees', JSON.stringify(demoEmployees));
-                    
-                    showNotification('Employee deleted! 🗑️', 'success');
-                    loadEmployeeManagement();
-                    return;
-                }
-
                 const { error } = await supabase
                     .from('employees')
                     .delete()
@@ -1942,7 +1731,6 @@
 
                 if (error) throw error;
                 
-                loadEmployeeManagement();
                 showNotification('Employee deleted successfully! 🗑️', 'success');
                 
             } catch (error) {
@@ -1951,47 +1739,43 @@
             }
         }
 
-        // Task Management Functions
         async function loadMyTasks() {
             const container = document.getElementById('myTaskList');
             
             try {
-                if (currentUser.isDemo) {
-                    const demoTasks = [
-                        {
-                            id: 'task1',
-                            title: 'Complete project documentation',
-                            description: 'Finish quarterly project documentation',
-                            priority: 'high',
-                            due_date: '2024-08-20',
-                            status: 'pending'
-                        },
-                        {
-                            id: 'task2',
-                            title: 'Prepare presentation',
-                            description: 'Weekly team meeting presentation',
-                            priority: 'medium',
-                            due_date: '2024-08-18',
-                            status: 'in_progress'
-                        }
-                    ];
-                    displayTasks(demoTasks, container);
-                    document.getElementById('totalTasks').textContent = demoTasks.length;
-                    return;
-                }
-
                 const { data: tasks } = await supabase
                     .from('tasks')
                     .select('*')
                     .eq('assigned_to', currentUser.id)
                     .order('created_at', { ascending: false });
                 
-                displayTasks(tasks || [], container);
-                document.getElementById('totalTasks').textContent = tasks?.length || 0;
+                if (tasks && tasks.length > 0) {
+                    container.innerHTML = tasks.map(task => `
+                        <div class="task-item">
+                            <div class="task-header">
+                                <div class="task-title">${task.title}</div>
+                                <span class="priority-${task.priority}">${getPriorityIcon(task.priority)} ${task.priority.toUpperCase()}</span>
+                            </div>
+                            <p>${task.description || 'No description'}</p>
+                            <div class="task-meta">
+                                <span>Due: ${new Date(task.due_date).toLocaleDateString()}</span>
+                                <span>Status: ${task.status}</span>
+                                <button class="btn-small btn-info" onclick="updateTaskStatus('${task.id}', '${task.status}')">
+                                    ${task.status === 'pending' ? '▶️ Start' : task.status === 'in_progress' ? '✅ Complete' : '✅ Done'}
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
+                    
+                    document.getElementById('totalTasks').textContent = tasks.length;
+                } else {
+                    container.innerHTML = '<p style="text-align: center; color: #666;">No tasks assigned yet</p>';
+                    document.getElementById('totalTasks').textContent = '0';
+                }
                 
             } catch (error) {
                 console.error('Error loading tasks:', error);
-                displayTasks([], container);
+                container.innerHTML = '<p style="color: #e53e3e;">Error loading tasks</p>';
             }
         }
 
@@ -1999,26 +1783,6 @@
             const container = document.getElementById('allTasksList');
             
             try {
-                if (currentUser.isDemo) {
-                    container.innerHTML = `
-                        <div class="task-item">
-                            <div class="task-header">
-                                <div>
-                                    <div class="task-title">Complete project documentation</div>
-                                    <p>Assigned to: John Smith</p>
-                                </div>
-                                <span class="priority-high">🔴 HIGH</span>
-                            </div>
-                            <p>Finish quarterly project documentation</p>
-                            <div class="task-meta">
-                                <span>Due: 20/08/2024</span>
-                                <span>Status: Pending</span>
-                            </div>
-                        </div>
-                    `;
-                    return;
-                }
-
                 const { data: tasks } = await supabase
                     .from('tasks')
                     .select(`
@@ -2027,64 +1791,30 @@
                     `)
                     .order('created_at', { ascending: false });
 
-                if (!tasks || tasks.length === 0) {
-                    container.innerHTML = '<p style="text-align: center; color: #666;">No tasks assigned yet</p>';
-                    return;
-                }
-
-                container.innerHTML = tasks.map(task => `
-                    <div class="task-item">
-                        <div class="task-header">
-                            <div>
-                                <div class="task-title">${task.title}</div>
-                                <p>Assigned to: ${task.employees.name}</p>
+                if (tasks && tasks.length > 0) {
+                    container.innerHTML = tasks.map(task => `
+                        <div class="task-item">
+                            <div class="task-header">
+                                <div>
+                                    <div class="task-title">${task.title}</div>
+                                    <p>Assigned to: ${task.employees.name}</p>
+                                </div>
+                                <span class="priority-${task.priority}">${getPriorityIcon(task.priority)} ${task.priority.toUpperCase()}</span>
                             </div>
-                            <span class="priority-${task.priority}">${getPriorityIcon(task.priority)} ${task.priority.toUpperCase()}</span>
+                            <p>${task.description || 'No description'}</p>
+                            <div class="task-meta">
+                                <span>Due: ${new Date(task.due_date).toLocaleDateString()}</span>
+                                <span>Status: ${task.status}</span>
+                            </div>
                         </div>
-                        <p>${task.description || 'No description'}</p>
-                        <div class="task-meta">
-                            <span>Due: ${new Date(task.due_date).toLocaleDateString()}</span>
-                            <span>Status: ${task.status}</span>
-                        </div>
-                    </div>
-                `).join('');
+                    `).join('');
+                } else {
+                    container.innerHTML = '<p style="text-align: center; color: #666;">No tasks assigned yet</p>';
+                }
                 
             } catch (error) {
                 console.error('Error loading all tasks:', error);
-                container.innerHTML = '<p style="text-align: center; color: #e53e3e;">Error loading tasks</p>';
-            }
-        }
-
-        function displayTasks(tasks, container) {
-            if (tasks.length === 0) {
-                container.innerHTML = '<p style="text-align: center; color: #666;">No tasks assigned yet</p>';
-                return;
-            }
-            
-            container.innerHTML = tasks.map(task => `
-                <div class="task-item">
-                    <div class="task-header">
-                        <div class="task-title">${task.title}</div>
-                        <span class="priority-${task.priority}">${getPriorityIcon(task.priority)} ${task.priority.toUpperCase()}</span>
-                    </div>
-                    <p>${task.description || 'No description'}</p>
-                    <div class="task-meta">
-                        <span>Due: ${new Date(task.due_date).toLocaleDateString()}</span>
-                        <span>Status: ${task.status}</span>
-                        <button class="btn-small btn-info" onclick="updateTaskStatus('${task.id}', '${task.status}')">
-                            ${task.status === 'pending' ? '▶️ Start' : task.status === 'in_progress' ? '✅ Complete' : '✅ Done'}
-                        </button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function getPriorityIcon(priority) {
-            switch(priority) {
-                case 'high': return '🔴';
-                case 'medium': return '🟡';
-                case 'low': return '🟢';
-                default: return '⚪';
+                container.innerHTML = '<p style="color: #e53e3e;">Error loading tasks</p>';
             }
         }
 
@@ -2093,12 +1823,6 @@
                              currentStatus === 'in_progress' ? 'completed' : 'completed';
             
             try {
-                if (currentUser.isDemo) {
-                    showNotification('Task status updated! (Demo Mode) ✅', 'success');
-                    loadMyTasks();
-                    return;
-                }
-
                 const { error } = await supabase
                     .from('tasks')
                     .update({ status: nextStatus })
@@ -2106,7 +1830,6 @@
 
                 if (error) throw error;
                 
-                loadMyTasks();
                 showNotification('Task status updated! ✅', 'success');
                 
             } catch (error) {
@@ -2115,192 +1838,81 @@
             }
         }
 
-        async function handleAddTask(e) {
-            e.preventDefault();
-            
-            const taskData = {
-                title: document.getElementById('taskTitle').value,
-                description: document.getElementById('taskDescription').value,
-                priority: document.getElementById('taskPriority').value,
-                due_date: document.getElementById('taskDueDate').value,
-                assigned_to: document.getElementById('taskAssignTo').value,
-                status: 'pending',
-                created_by: currentUser.id
-            };
-            
-            try {
-                if (currentUser.isDemo) {
-                    showNotification('Task assigned successfully! (Demo Mode) 🎉', 'success');
-                    closeModal('addTaskModal');
-                    e.target.reset();
-                    return;
-                }
-
-                const { error } = await supabase
-                    .from('tasks')
-                    .insert([taskData]);
-
-                if (error) throw error;
-                
-                closeModal('addTaskModal');
-                loadTaskManagement();
-                showNotification('Task assigned successfully! 🎉', 'success');
-                e.target.reset();
-                
-            } catch (error) {
-                console.error('Add task error:', error);
-                showNotification('Failed to assign task ❌', 'error');
-            }
-        }
-
-        // Schedule Functions
         async function loadMySchedule() {
             const container = document.getElementById('mySchedule');
             
-            container.innerHTML = `
-                <div style="margin-bottom: 15px;">
-                    <h4>📅 Today's Schedule</h4>
-                    <div style="padding: 10px; background: #f7fafc; border-radius: 8px; margin-top: 10px;">
-                        <p><strong>🕘 9:00 AM - 6:00 PM</strong></p>
-                        <p>🌅 Morning Shift | 🏢 Office</p>
-                        <p>📝 Regular working day</p>
-                    </div>
-                </div>
-                <div>
-                    <h4>📊 This Week</h4>
-                    <div style="font-size: 12px; margin-top: 10px;">
-                        <div style="display: flex; justify-content: space-between; padding: 5px 0;">
-                            <span>Mon</span><span class="status-badge status-working">Work</span>
+            try {
+                const today = new Date().toISOString().split('T')[0];
+                const { data: todayRoster } = await supabase
+                    .from('roster')
+                    .select('*')
+                    .eq('employee_id', currentUser.id)
+                    .eq('date', today)
+                    .single();
+
+                if (todayRoster) {
+                    container.innerHTML = `
+                        <div style="margin-bottom: 15px;">
+                            <h4>📅 Today's Schedule</h4>
+                            <div style="padding: 10px; background: #e6f7ff; border-radius: 8px; margin-top: 10px;">
+                                <p><strong>${getShiftTime(todayRoster.shift)}</strong></p>
+                                <p>${getShiftIcon(todayRoster.shift)} ${todayRoster.shift.charAt(0).toUpperCase() + todayRoster.shift.slice(1)} Shift | ${getLocationIcon(todayRoster.location)} ${todayRoster.location.charAt(0).toUpperCase() + todayRoster.location.slice(1)}</p>
+                                <p>📝 ${todayRoster.notes || 'Regular working day'}</p>
+                            </div>
                         </div>
-                        <div style="display: flex; justify-content: space-between; padding: 5px 0;">
-                            <span>Tue</span><span class="status-badge status-working">Work</span>
+                    `;
+                } else {
+                    container.innerHTML = `
+                        <div style="margin-bottom: 15px;">
+                            <h4>📅 Today's Schedule</h4>
+                            <div style="padding: 10px; background: #f7fafc; border-radius: 8px; margin-top: 10px;">
+                                <p style="color: #666;">No schedule assigned for today</p>
+                                <p style="font-size: 12px;">Default: 9 AM - 6 PM</p>
+                            </div>
                         </div>
-                        <div style="display: flex; justify-content: space-between; padding: 5px 0;">
-                            <span>Wed</span><span class="status-badge status-working">Work</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; padding: 5px 0;">
-                            <span>Thu</span><span class="status-badge status-working">Work</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; padding: 5px 0;">
-                            <span>Fri</span><span class="status-badge status-working">Work</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; padding: 5px 0;">
-                            <span>Sat</span><span class="status-badge status-out">Off</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; padding: 5px 0;">
-                            <span>Sun</span><span class="status-badge status-out">Off</span>
-                        </div>
-                    </div>
-                </div>
-            `;
+                    `;
+                }
+                
+            } catch (error) {
+                console.error('Error loading schedule:', error);
+                container.innerHTML = '<p style="color: #e53e3e;">Error loading schedule</p>';
+            }
         }
 
-        // Leave Management Functions
         async function loadLeaveManagement() {
             const container = document.getElementById('leaveRequestsList');
             
             try {
-                if (currentUser.isDemo) {
-                    container.innerHTML = `
-                        <div class="card">
-                            <h3>📊 Leave Balance</h3>
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
-                                <div style="text-align: center; padding: 15px; background: #f7fafc; border-radius: 8px;">
-                                    <div style="font-size: 24px; font-weight: bold; color: #48bb78;">12</div>
-                                    <div style="font-size: 12px; color: #666;">Casual Leave</div>
-                                </div>
-                                <div style="text-align: center; padding: 15px; background: #f7fafc; border-radius: 8px;">
-                                    <div style="font-size: 24px; font-weight: bold; color: #4299e1;">7</div>
-                                    <div style="font-size: 12px; color: #666;">Sick Leave</div>
-                                </div>
-                                <div style="text-align: center; padding: 15px; background: #f7fafc; border-radius: 8px;">
-                                    <div style="font-size: 24px; font-weight: bold; color: #ed8936;">21</div>
-                                    <div style="font-size: 12px; color: #666;">Earned Leave</div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="card">
-                            <h3>📝 Recent Leave Requests</h3>
-                            <div class="task-item">
-                                <div class="task-header">
-                                    <div>
-                                        <div class="task-title">Casual Leave</div>
-                                        <p>25 Aug - 27 Aug 2024</p>
-                                    </div>
-                                    <span class="status-badge status-working">✅ Approved</span>
-                                </div>
-                                <p>Family function</p>
-                                <div class="task-meta">
-                                    <span>Applied: 20 Aug 2024</span>
-                                    <span>3 days</span>
-                                    ${currentUser.role === 'admin' ? `
-                                        <button class="btn-small btn-success" onclick="approveLeave('demo1')">✅ Approved</button>
-                                    ` : ''}
-                                </div>
-                            </div>
-                            <div class="task-item">
-                                <div class="task-header">
-                                    <div>
-                                        <div class="task-title">Sick Leave</div>
-                                        <p>15 Aug 2024</p>
-                                    </div>
-                                    <span class="status-badge status-break">⏳ Pending</span>
-                                </div>
-                                <p>Medical checkup</p>
-                                <div class="task-meta">
-                                    <span>Applied: 14 Aug 2024</span>
-                                    <span>1 day</span>
-                                    ${currentUser.role === 'admin' ? `
-                                        <button class="btn-small btn-success" onclick="approveLeave('demo2')">✅ Approve</button>
-                                        <button class="btn-small btn-danger" onclick="rejectLeave('demo2')">❌ Reject</button>
-                                    ` : ''}
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    return;
-                }
-
-                // Load leave balance and requests
-                const { data: leaveBalance } = await supabase
-                    .from('leave_balance')
-                    .select('*')
-                    .eq('employee_id', currentUser.id)
-                    .single();
-
                 const { data: leaveRequests } = await supabase
                     .from('leave_requests')
                     .select('*')
                     .eq('employee_id', currentUser.id)
                     .order('created_at', { ascending: false });
 
-                const balance = leaveBalance || { casual: 12, sick: 7, earned: 21 };
-                const requests = leaveRequests || [];
-
                 container.innerHTML = `
                     <div class="card">
                         <h3>📊 Leave Balance</h3>
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
                             <div style="text-align: center; padding: 15px; background: #f7fafc; border-radius: 8px;">
-                                <div style="font-size: 24px; font-weight: bold; color: #48bb78;">${balance.casual || 12}</div>
+                                <div style="font-size: 24px; font-weight: bold; color: #48bb78;">12</div>
                                 <div style="font-size: 12px; color: #666;">Casual Leave</div>
                             </div>
                             <div style="text-align: center; padding: 15px; background: #f7fafc; border-radius: 8px;">
-                                <div style="font-size: 24px; font-weight: bold; color: #4299e1;">${balance.sick || 7}</div>
+                                <div style="font-size: 24px; font-weight: bold; color: #4299e1;">7</div>
                                 <div style="font-size: 12px; color: #666;">Sick Leave</div>
                             </div>
                             <div style="text-align: center; padding: 15px; background: #f7fafc; border-radius: 8px;">
-                                <div style="font-size: 24px; font-weight: bold; color: #ed8936;">${balance.earned || 21}</div>
+                                <div style="font-size: 24px; font-weight: bold; color: #ed8936;">21</div>
                                 <div style="font-size: 12px; color: #666;">Earned Leave</div>
                             </div>
                         </div>
                     </div>
                     
                     <div class="card">
-                        <h3>📝 Recent Leave Requests</h3>
-                        ${requests.length === 0 ? '<p style="text-align: center; color: #666;">No leave requests yet</p>' : 
-                            requests.map(request => `
+                        <h3>📝 Leave Requests</h3>
+                        ${!leaveRequests || leaveRequests.length === 0 ? 
+                            '<p style="text-align: center; color: #666;">No leave requests yet</p>' : 
+                            leaveRequests.map(request => `
                                 <div class="task-item">
                                     <div class="task-header">
                                         <div>
@@ -2330,6 +1942,391 @@
             }
         }
 
+        async function loadAdminStats() {
+            if (currentUser.role !== 'admin') return;
+            
+            try {
+                const { data: employees } = await supabase
+                    .from('employees')
+                    .select('id');
+                
+                const today = new Date().toISOString().split('T')[0];
+                const { data: attendance } = await supabase
+                    .from('attendance')
+                    .select('status')
+                    .eq('date', today);
+                
+                const totalEmployees = employees?.length || 0;
+                const presentToday = attendance?.filter(a => a.status === 'present').length || 0;
+                const absentToday = totalEmployees - presentToday;
+                
+                document.getElementById('totalEmployees').textContent = totalEmployees;
+                document.getElementById('presentToday').textContent = presentToday;
+                document.getElementById('absentToday').textContent = absentToday;
+                document.getElementById('onBreak').textContent = '0';
+                
+            } catch (error) {
+                console.error('Error loading admin stats:', error);
+            }
+        }
+
+        async function loadLiveAttendance() {
+            const container = document.getElementById('liveAttendance');
+            
+            try {
+                const today = new Date().toISOString().split('T')[0];
+                const { data: liveData } = await supabase
+                    .from('employees')
+                    .select(`
+                        name, 
+                        department,
+                        attendance!left(status, check_in)
+                    `)
+                    .eq('attendance.date', today);
+
+                if (liveData && liveData.length > 0) {
+                    container.innerHTML = `
+                        <div style="margin-bottom: 10px; font-size: 12px; color: #666; text-align: center;">
+                            ⚡ Real-time attendance data
+                        </div>
+                        <div style="max-height: 300px; overflow-y: auto;">
+                            ${liveData.map(emp => `
+                                <div class="employee-card" style="margin-bottom: 10px; padding: 15px;">
+                                    <div>
+                                        <h4>${emp.name}</h4>
+                                        <p>${emp.department} Department</p>
+                                    </div>
+                                    <span class="status-badge ${emp.attendance && emp.attendance.length > 0 && emp.attendance[0].status === 'present' ? 'status-working' : 'status-out'}">
+                                        ${emp.attendance && emp.attendance.length > 0 && emp.attendance[0].status === 'present' ? '💼 Working' : '🏠 Not Checked In'}
+                                    </span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = '<p style="text-align: center; color: #666;">No attendance data found</p>';
+                }
+                
+            } catch (error) {
+                console.error('Error loading live attendance:', error);
+                container.innerHTML = '<p style="color: #e53e3e;">Error loading attendance data</p>';
+            }
+        }
+
+        async function loadEmployeeDashboard() {
+            try {
+                const weekStart = new Date();
+                weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+                const weekEnd = new Date(weekStart);
+                weekEnd.setDate(weekEnd.getDate() + 6);
+                
+                const { data: weekAttendance } = await supabase
+                    .from('attendance')
+                    .select('total_hours')
+                    .eq('employee_id', currentUser.id)
+                    .gte('date', weekStart.toISOString().split('T')[0])
+                    .lte('date', weekEnd.toISOString().split('T')[0]);
+                
+                const totalWeekHours = weekAttendance?.reduce((sum, record) => sum + (record.total_hours || 0), 0) || 0;
+                document.getElementById('thisWeekHours').textContent = `${Math.floor(totalWeekHours)}h ${Math.floor((totalWeekHours % 1) * 60)}m`;
+                
+            } catch (error) {
+                console.error('Error loading employee dashboard:', error);
+            }
+        }
+
+        async function loadAttendanceReport() {
+            const container = document.getElementById('attendanceReportData');
+            const month = document.getElementById('reportMonth').value;
+            
+            if (!month) {
+                container.innerHTML = '<p style="color: #666;">Please select a month</p>';
+                return;
+            }
+            
+            try {
+                const startDate = month + '-01';
+                const endDate = new Date(month + '-01');
+                endDate.setMonth(endDate.getMonth() + 1);
+                endDate.setDate(0);
+                const endDateStr = endDate.toISOString().split('T')[0];
+
+                const { data: reportData } = await supabase
+                    .from('employees')
+                    .select(`
+                        name,
+                        department,
+                        attendance!left(date, status, total_hours)
+                    `)
+                    .gte('attendance.date', startDate)
+                    .lte('attendance.date', endDateStr);
+
+                if (reportData && reportData.length > 0) {
+                    const processedData = reportData.map(emp => {
+                        const attendance = emp.attendance || [];
+                        const presentDays = attendance.filter(a => a.status === 'present').length;
+                        const totalHours = attendance.reduce((sum, a) => sum + (a.total_hours || 0), 0);
+                        const workingDays = new Date(endDate.getFullYear(), endDate.getMonth() + 1, 0).getDate();
+                        const absentDays = workingDays - presentDays;
+                        
+                        return {
+                            name: emp.name,
+                            department: emp.department,
+                            presentDays,
+                            absentDays,
+                            totalHours: Math.round(totalHours),
+                            status: presentDays >= workingDays * 0.9 ? 'Excellent' : 
+                                   presentDays >= workingDays * 0.8 ? 'Good' : 'Average'
+                        };
+                    });
+
+                    container.innerHTML = `
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Employee</th>
+                                    <th>Department</th>
+                                    <th>Present Days</th>
+                                    <th>Absent Days</th>
+                                    <th>Total Hours</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${processedData.map(emp => `
+                                    <tr>
+                                        <td>${emp.name}</td>
+                                        <td>${emp.department}</td>
+                                        <td>${emp.presentDays}</td>
+                                        <td>${emp.absentDays}</td>
+                                        <td>${emp.totalHours}h</td>
+                                        <td><span class="status-badge ${emp.status === 'Excellent' ? 'status-working' : emp.status === 'Good' ? 'status-working' : 'status-break'}">${emp.status}</span></td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    `;
+                } else {
+                    container.innerHTML = '<p style="text-align: center; color: #666;">No attendance data for selected month</p>';
+                }
+                
+            } catch (error) {
+                console.error('Error loading attendance report:', error);
+                container.innerHTML = '<p style="color: #e53e3e;">Error loading report data</p>';
+            }
+        }
+
+        // =================================
+        // ATTENDANCE MANAGEMENT
+        // =================================
+
+        function loadAttendance() {
+            const today = new Date().toISOString().split('T')[0];
+            const saved = localStorage.getItem(`attendance_${currentUser.id}_${today}`);
+            if (saved) {
+                attendanceData = JSON.parse(saved);
+                if (attendanceData.checkInTime) {
+                    attendanceData.checkInTime = new Date(attendanceData.checkInTime);
+                }
+                if (attendanceData.breakStart) {
+                    attendanceData.breakStart = new Date(attendanceData.breakStart);
+                }
+            }
+            updateAttendanceUI();
+        }
+
+        function saveAttendance() {
+            const today = new Date().toISOString().split('T')[0];
+            localStorage.setItem(`attendance_${currentUser.id}_${today}`, JSON.stringify(attendanceData));
+        }
+
+        async function checkIn() {
+            try {
+                const checkInTime = new Date();
+                attendanceData.isCheckedIn = true;
+                attendanceData.checkInTime = checkInTime;
+                
+                const { error } = await supabase
+                    .from('attendance')
+                    .upsert({
+                        employee_id: currentUser.id,
+                        date: new Date().toISOString().split('T')[0],
+                        check_in: checkInTime.toTimeString().split(' ')[0],
+                        status: 'present'
+                    });
+
+                if (error) throw error;
+                
+                saveAttendance();
+                updateAttendanceUI();
+                showNotification('Checked in successfully! ✅', 'success');
+                
+            } catch (error) {
+                console.error('Check-in error:', error);
+                showNotification('Check-in failed ❌', 'error');
+            }
+        }
+
+        async function checkOut() {
+            try {
+                const checkOutTime = new Date();
+                const totalMs = checkOutTime - attendanceData.checkInTime - attendanceData.totalBreakTime;
+                const totalHours = Math.round((totalMs / (1000 * 60 * 60)) * 100) / 100;
+                
+                const { error } = await supabase
+                    .from('attendance')
+                    .update({
+                        check_out: checkOutTime.toTimeString().split(' ')[0],
+                        total_hours: totalHours,
+                        break_time: Math.round(attendanceData.totalBreakTime / (1000 * 60))
+                    })
+                    .eq('employee_id', currentUser.id)
+                    .eq('date', new Date().toISOString().split('T')[0]);
+
+                if (error) throw error;
+                
+                attendanceData = {
+                    isCheckedIn: false,
+                    isOnBreak: false,
+                    checkInTime: null,
+                    breakStart: null,
+                    totalBreakTime: 0
+                };
+                
+                saveAttendance();
+                updateAttendanceUI();
+                showNotification('Checked out successfully! 🏁', 'success');
+                
+            } catch (error) {
+                console.error('Check-out error:', error);
+                showNotification('Check-out failed ❌', 'error');
+            }
+        }
+
+        function toggleBreak() {
+            if (!attendanceData.isCheckedIn) return;
+            
+            if (attendanceData.isOnBreak) {
+                const breakDuration = new Date() - attendanceData.breakStart;
+                attendanceData.totalBreakTime += breakDuration;
+                attendanceData.isOnBreak = false;
+                attendanceData.breakStart = null;
+                showNotification('Break ended ⏰', 'info');
+            } else {
+                attendanceData.isOnBreak = true;
+                attendanceData.breakStart = new Date();
+                showNotification('Break started ☕', 'info');
+            }
+            
+            saveAttendance();
+            updateAttendanceUI();
+        }
+
+        function updateAttendanceUI() {
+            const checkInBtn = document.getElementById('checkInBtn');
+            const checkOutBtn = document.getElementById('checkOutBtn');
+            const breakBtn = document.getElementById('breakBtn');
+            const status = document.getElementById('attendanceStatus');
+            const checkInTimeEl = document.getElementById('checkInTime');
+            
+            checkInBtn.disabled = attendanceData.isCheckedIn;
+            checkOutBtn.disabled = !attendanceData.isCheckedIn;
+            breakBtn.disabled = !attendanceData.isCheckedIn;
+            
+            if (attendanceData.isCheckedIn) {
+                checkInBtn.textContent = '✅ Checked In';
+                breakBtn.textContent = attendanceData.isOnBreak ? 'End Break' : 'Start Break';
+                
+                if (attendanceData.isOnBreak) {
+                    status.className = 'status-badge status-break';
+                    status.textContent = '☕ On Break';
+                } else {
+                    status.className = 'status-badge status-working';
+                    status.textContent = '💼 Working';
+                }
+            } else {
+                checkInBtn.textContent = 'Check In';
+                breakBtn.textContent = 'Break';
+                status.className = 'status-badge status-out';
+                status.textContent = '🏠 Not Checked In';
+            }
+            
+            if (attendanceData.checkInTime) {
+                checkInTimeEl.textContent = attendanceData.checkInTime.toTimeString().substr(0, 5);
+            } else {
+                checkInTimeEl.textContent = '--:--';
+            }
+        }
+
+        function updateWorkingTime() {
+            if (attendanceData.isCheckedIn && attendanceData.checkInTime) {
+                const now = new Date();
+                let workingMs = now - attendanceData.checkInTime - attendanceData.totalBreakTime;
+                
+                if (attendanceData.isOnBreak && attendanceData.breakStart) {
+                    const currentBreakMs = now - attendanceData.breakStart;
+                    workingMs -= currentBreakMs;
+                }
+                
+                const hours = Math.floor(workingMs / (1000 * 60 * 60));
+                const minutes = Math.floor((workingMs % (1000 * 60 * 60)) / (1000 * 60));
+                
+                const timeStr = `${hours}h ${minutes}m`;
+                document.getElementById('workingTime').textContent = timeStr;
+                document.getElementById('todayHours').textContent = timeStr;
+                
+                let totalBreakMs = attendanceData.totalBreakTime;
+                if (attendanceData.isOnBreak && attendanceData.breakStart) {
+                    totalBreakMs += (now - attendanceData.breakStart);
+                }
+                const breakHours = Math.floor(totalBreakMs / (1000 * 60 * 60));
+                const breakMinutes = Math.floor((totalBreakMs % (1000 * 60 * 60)) / (1000 * 60));
+                document.getElementById('breakTime').textContent = `${breakHours}h ${breakMinutes}m`;
+            }
+        }
+
+        // =================================
+        // UTILITY FUNCTIONS
+        // =================================
+
+        function getPriorityIcon(priority) {
+            switch(priority) {
+                case 'high': return '🔴';
+                case 'medium': return '🟡';
+                case 'low': return '🟢';
+                default: return '⚪';
+            }
+        }
+
+        function getShiftTime(shift) {
+            switch(shift) {
+                case 'morning': return '🕘 9:00 AM - 6:00 PM';
+                case 'evening': return '🕐 2:00 PM - 11:00 PM';
+                case 'night': return '🕚 11:00 PM - 8:00 AM';
+                case 'half': return '🕘 9:00 AM - 1:00 PM';
+                default: return '🕘 9:00 AM - 6:00 PM';
+            }
+        }
+
+        function getShiftIcon(shift) {
+            switch(shift) {
+                case 'morning': return '🌅';
+                case 'evening': return '🌆';
+                case 'night': return '🌙';
+                case 'half': return '🕐';
+                default: return '🌅';
+            }
+        }
+
+        function getLocationIcon(location) {
+            switch(location) {
+                case 'office': return '🏢';
+                case 'remote': return '🏠';
+                case 'hybrid': return '🔄';
+                default: return '🏢';
+            }
+        }
+
         function getLeaveStatusClass(status) {
             switch(status) {
                 case 'approved': return 'status-working';
@@ -2352,64 +2349,17 @@
             const start = new Date(fromDate);
             const end = new Date(toDate);
             const diffTime = Math.abs(end - start);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-            return diffDays;
-        }
-
-        async function handleApplyLeave(e) {
-            e.preventDefault();
-            
-            const leaveData = {
-                employee_id: currentUser.id,
-                leave_type: document.getElementById('leaveType').value,
-                from_date: document.getElementById('leaveFromDate').value,
-                to_date: document.getElementById('leaveToDate').value,
-                reason: document.getElementById('leaveReason').value,
-                status: 'pending'
-            };
-            
-            try {
-                if (currentUser.isDemo) {
-                    showNotification('Leave application submitted! (Demo Mode) 🏖️', 'success');
-                    closeModal('applyLeaveModal');
-                    e.target.reset();
-                    loadLeaveManagement();
-                    return;
-                }
-
-                const { error } = await supabase
-                    .from('leave_requests')
-                    .insert([leaveData]);
-
-                if (error) throw error;
-                
-                closeModal('applyLeaveModal');
-                loadLeaveManagement();
-                showNotification('Leave application submitted! 🏖️', 'success');
-                e.target.reset();
-                
-            } catch (error) {
-                console.error('Apply leave error:', error);
-                showNotification('Failed to submit leave application ❌', 'error');
-            }
+            return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
         }
 
         async function approveLeave(leaveId) {
             try {
-                if (currentUser.isDemo) {
-                    showNotification('Leave approved! (Demo Mode) ✅', 'success');
-                    loadLeaveManagement();
-                    return;
-                }
-
                 const { error } = await supabase
                     .from('leave_requests')
                     .update({ status: 'approved' })
                     .eq('id', leaveId);
 
                 if (error) throw error;
-                
-                loadLeaveManagement();
                 showNotification('Leave approved! ✅', 'success');
                 
             } catch (error) {
@@ -2420,176 +2370,17 @@
 
         async function rejectLeave(leaveId) {
             try {
-                if (currentUser.isDemo) {
-                    showNotification('Leave rejected! (Demo Mode) ❌', 'error');
-                    loadLeaveManagement();
-                    return;
-                }
-
                 const { error } = await supabase
                     .from('leave_requests')
                     .update({ status: 'rejected' })
                     .eq('id', leaveId);
 
                 if (error) throw error;
-                
-                loadLeaveManagement();
                 showNotification('Leave rejected! ❌', 'error');
                 
             } catch (error) {
                 console.error('Reject leave error:', error);
                 showNotification('Failed to reject leave ❌', 'error');
-            }
-        }
-
-        // Report Functions
-        async function loadAttendanceReport() {
-            const container = document.getElementById('attendanceReportData');
-            const month = document.getElementById('reportMonth').value;
-            
-            if (!month) {
-                container.innerHTML = '<p style="color: #666;">Please select a month</p>';
-                return;
-            }
-            
-            try {
-                if (currentUser.isDemo) {
-                    container.innerHTML = `
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Employee</th>
-                                    <th>Department</th>
-                                    <th>Present Days</th>
-                                    <th>Absent Days</th>
-                                    <th>Total Hours</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>John Smith</td>
-                                    <td>IT</td>
-                                    <td>22</td>
-                                    <td>3</td>
-                                    <td>176h</td>
-                                    <td><span class="status-badge status-working">Good</span></td>
-                                </tr>
-                                <tr>
-                                    <td>Sarah Johnson</td>
-                                    <td>HR</td>
-                                    <td>24</td>
-                                    <td>1</td>
-                                    <td>192h</td>
-                                    <td><span class="status-badge status-working">Excellent</span></td>
-                                </tr>
-                                <tr>
-                                    <td>Mike Wilson</td>
-                                    <td>Finance</td>
-                                    <td>20</td>
-                                    <td>5</td>
-                                    <td>160h</td>
-                                    <td><span class="status-badge status-break">Average</span></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    `;
-                    return;
-                }
-
-                const startDate = month + '-01';
-                const endDate = new Date(month + '-01');
-                endDate.setMonth(endDate.getMonth() + 1);
-                endDate.setDate(0);
-                const endDateStr = endDate.toISOString().split('T')[0];
-
-                const { data: reportData } = await supabase
-                    .from('employees')
-                    .select(`
-                        name,
-                        department,
-                        attendance!left(date, status, total_hours)
-                    `)
-                    .gte('attendance.date', startDate)
-                    .lte('attendance.date', endDateStr);
-
-                if (!reportData || reportData.length === 0) {
-                    container.innerHTML = '<p style="text-align: center; color: #666;">No attendance data for selected month</p>';
-                    return;
-                }
-
-                const processedData = reportData.map(emp => {
-                    const attendance = emp.attendance || [];
-                    const presentDays = attendance.filter(a => a.status === 'present').length;
-                    const totalHours = attendance.reduce((sum, a) => sum + (a.total_hours || 0), 0);
-                    const workingDays = new Date(endDate.getFullYear(), endDate.getMonth() + 1, 0).getDate();
-                    const absentDays = workingDays - presentDays;
-                    
-                    return {
-                        name: emp.name,
-                        department: emp.department,
-                        presentDays,
-                        absentDays,
-                        totalHours: Math.round(totalHours),
-                        status: presentDays >= workingDays * 0.9 ? 'Excellent' : 
-                               presentDays >= workingDays * 0.8 ? 'Good' : 'Average'
-                    };
-                });
-
-                container.innerHTML = `
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Employee</th>
-                                <th>Department</th>
-                                <th>Present Days</th>
-                                <th>Absent Days</th>
-                                <th>Total Hours</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${processedData.map(emp => `
-                                <tr>
-                                    <td>${emp.name}</td>
-                                    <td>${emp.department}</td>
-                                    <td>${emp.presentDays}</td>
-                                    <td>${emp.absentDays}</td>
-                                    <td>${emp.totalHours}h</td>
-                                    <td><span class="status-badge ${emp.status === 'Excellent' ? 'status-working' : emp.status === 'Good' ? 'status-working' : 'status-break'}">${emp.status}</span></td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                `;
-                
-            } catch (error) {
-                console.error('Error loading attendance report:', error);
-                container.innerHTML = '<p style="color: #e53e3e;">Error loading report data</p>';
-            }
-        }
-
-        // Form Validation Functions - COMPLETELY DISABLED FOR TESTING
-        function setupFormValidations() {
-            // TEMPORARILY DISABLE ALL VALIDATION
-            
-            /*
-            // Enhanced form validation for employee form - DISABLED
-            document.getElementById('addEmployeeForm').addEventListener('submit', function(e) {
-                // NO VALIDATION - LET EVERYTHING PASS
-                console.log('Form submitted - no validation');
-            });
-            */
-
-            // NO DATE VALIDATION EITHER
-            console.log('All form validations disabled for testing');
-        }
-
-        // Utility Functions
-        function updateLiveData() {
-            if (currentUser && currentUser.role === 'admin') {
-                loadAdminStats();
-                loadLiveAttendance();
             }
         }
 
@@ -2603,7 +2394,6 @@
             document.getElementById(loaderElementId).style.display = 'none';
         }
 
-        // Modal Functions
         function openAddEmployeeModal() {
             document.getElementById('addEmployeeModal').classList.add('show');
         }
@@ -2612,53 +2402,16 @@
             document.getElementById('addTaskModal').classList.add('show');
         }
 
+        function openCreateRosterModal() {
+            document.getElementById('createRosterModal').classList.add('show');
+        }
+
         function openApplyLeaveModal() {
             document.getElementById('applyLeaveModal').classList.add('show');
         }
 
         function closeModal(modalId) {
             document.getElementById(modalId).classList.remove('show');
-        }
-
-        // Global form submission function (called from HTML)
-        function submitEmployeeForm(event) {
-            console.log('submitEmployeeForm called from HTML');
-            handleAddEmployee(event);
-            return false; // Prevent default form submission
-        }
-
-        // Debug function to test employee addition
-        function testAddEmployee() {
-            console.log('Test Add Employee called');
-            console.log('Current user:', currentUser);
-            
-            const testEmployee = {
-                id: 'test_' + Date.now(),
-                name: 'Test Employee',
-                email: 'test@example.com',
-                phone: '1234567890',
-                department: 'IT',
-                role: 'employee',
-                salary: 50000,
-                join_date: '2024-01-01'
-            };
-            
-            if (currentUser && currentUser.isDemo) {
-                let demoEmployees = JSON.parse(localStorage.getItem('demoEmployees') || '[]');
-                demoEmployees.push(testEmployee);
-                localStorage.setItem('demoEmployees', JSON.stringify(demoEmployees));
-                
-                console.log('Test employee added to localStorage');
-                showNotification('Test employee added! 🎉', 'success');
-                closeModal('addEmployeeModal');
-                
-                setTimeout(() => {
-                    loadEmployeeManagement();
-                }, 500);
-            } else {
-                console.log('Not in demo mode or no current user');
-                showNotification('Please login first!', 'error');
-            }
         }
 
         // Placeholder functions for future features
@@ -2670,11 +2423,36 @@
             showNotification('Export feature coming soon! 📊', 'info');
         }
 
-        function editEmployee(employeeId) {
-            showNotification('Edit feature coming soon! ✏️', 'info');
+        // =================================
+        // DATABASE CONNECTION CHECK
+        // =================================
+
+        async function checkDatabaseConnection() {
+            try {
+                const { data, error } = await supabase
+                    .from('employees')
+                    .select('count')
+                    .limit(1);
+                
+                if (error) throw error;
+                
+                document.getElementById('connectionStatus').textContent = `Live Database (${realtimeChannelCount}/5 channels)`;
+                document.getElementById('connectionStatus').style.color = '#48bb78';
+                console.log('Database connection: ✅ OK');
+                return true;
+                
+            } catch (error) {
+                console.error('Database connection failed:', error);
+                document.getElementById('connectionStatus').textContent = 'Database Error';
+                document.getElementById('connectionStatus').style.color = '#e53e3e';
+                return false;
+            }
         }
 
-        // Event Listeners
+        // =================================
+        // EVENT LISTENERS
+        // =================================
+
         document.addEventListener('click', function(e) {
             if (e.target.classList.contains('modal')) {
                 e.target.classList.remove('show');
@@ -2700,11 +2478,13 @@
             showNotification('Connection restored! 🌐', 'success');
             if (currentUser) {
                 loadDashboardData();
+                setupRealtimeSubscriptions();
             }
         });
 
         window.addEventListener('offline', function() {
-            showNotification('No internet connection! Working in offline mode. 📱', 'error');
+            showNotification('No internet connection! 📱', 'error');
+            cleanupSubscriptions();
         });
 
         // Performance monitoring
@@ -2722,15 +2502,190 @@
             cleanupSubscriptions();
         });
 
-        // Auto-refresh data every 5 minutes
+        // Auto-refresh data every 2 minutes to ensure freshness
         setInterval(() => {
-            if (currentUser) {
+            if (currentUser && realtimeChannelCount >= 5) {
+                console.log('🔄 Auto-refresh: Real-time is active, skipping manual refresh');
+            } else if (currentUser) {
+                console.log('🔄 Auto-refresh: Loading fresh data (real-time inactive)');
                 loadDashboardData();
             }
-        }, 300000); // 5 minutes
+        }, 120000); // 2 minutes
 
-        // Initialize app
-        console.log('🚀 Employee Management Portal loaded successfully!');
+        // Real-time connection health check
+        setInterval(() => {
+            if (currentUser) {
+                checkDatabaseConnection();
+            }
+        }, 30000); // 30 seconds
+
+        // =================================
+        // ADVANCED REAL-TIME FEATURES
+        // =================================
+
+        // Live cursor/user presence (optional enhancement)
+        function setupUserPresence() {
+            if (!currentUser) return;
+            
+            const presenceChannel = supabase.channel('user-presence', {
+                config: {
+                    presence: {
+                        key: currentUser.id,
+                    },
+                },
+            });
+
+            presenceChannel.on('presence', { event: 'sync' }, () => {
+                const state = presenceChannel.presenceState();
+                const users = Object.keys(state).length;
+                console.log('👥 Users online:', users);
+                
+                // Update UI to show online users count
+                const statusEl = document.getElementById('realtimeStatus');
+                if (statusEl && users > 1) {
+                    statusEl.innerHTML += ` <span style="margin-left: 10px; font-size: 10px;">👥 ${users} online</span>`;
+                }
+            });
+
+            presenceChannel.subscribe(async (status) => {
+                if (status === 'SUBSCRIBED') {
+                    await presenceChannel.track({
+                        user_id: currentUser.id,
+                        user_name: currentUser.name,
+                        online_at: new Date().toISOString(),
+                    });
+                }
+            });
+
+            realtimeSubscriptions.push(presenceChannel);
+        }
+
+        // Batch operations for better performance
+        async function batchUpdateTasks(updates) {
+            try {
+                const { error } = await supabase
+                    .from('tasks')
+                    .upsert(updates);
+
+                if (error) throw error;
+                showNotification(`${updates.length} tasks updated! 📋`, 'success');
+                
+            } catch (error) {
+                console.error('Batch update error:', error);
+                showNotification('Batch update failed ❌', 'error');
+            }
+        }
+
+        // Advanced search functionality
+        async function searchEmployees(query) {
+            try {
+                const { data, error } = await supabase
+                    .from('employees')
+                    .select('*')
+                    .or(`name.ilike.%${query}%,email.ilike.%${query}%,department.ilike.%${query}%`)
+                    .limit(10);
+
+                if (error) throw error;
+                return data || [];
+                
+            } catch (error) {
+                console.error('Search error:', error);
+                return [];
+            }
+        }
+
+        // Real-time notifications system
+        function setupNotificationSystem() {
+            // Listen for important events and show system notifications
+            const notificationChannel = supabase
+                .channel('system-notifications')
+                .on('postgres_changes', {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'tasks',
+                    filter: `assigned_to=eq.${currentUser.id}`
+                }, (payload) => {
+                    // Show browser notification for new tasks
+                    if (Notification.permission === 'granted') {
+                        new Notification('New Task Assigned!', {
+                            body: `You have been assigned: ${payload.new.title}`,
+                            icon: '/favicon.ico'
+                        });
+                    }
+                })
+                .subscribe();
+
+            realtimeSubscriptions.push(notificationChannel);
+        }
+
+        // Request notification permission
+        function requestNotificationPermission() {
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        showNotification('Browser notifications enabled! 🔔', 'success');
+                        setupNotificationSystem();
+                    }
+                });
+            }
+        }
+
+        // =================================
+        // INITIALIZATION COMPLETE
+        // =================================
+
+        // Initialize advanced features when user logs in
+        function initializeAdvancedFeatures() {
+            setupUserPresence();
+            requestNotificationPermission();
+            
+            // Log successful initialization
+            console.log('🎉 Employee Management Portal - Real-time Mode Initialized!');
+            console.log('✅ Features: Real-time sync, Live presence, Browser notifications');
+            console.log('🚀 Ready for production use!');
+        }
+
+        // Call advanced features setup after successful authentication
+        if (currentUser) {
+            setTimeout(initializeAdvancedFeatures, 2000);
+        }
+
+        // =================================
+        // DEBUGGING AND MONITORING
+        // =================================
+
+        // Development mode logging
+        const isDevelopment = window.location.hostname === 'localhost';
+        
+        if (isDevelopment) {
+            console.log('🔧 Development Mode: Enhanced logging enabled');
+            
+            // Log all real-time events in development
+            window.debugRealtime = {
+                logEvents: true,
+                subscriptions: realtimeSubscriptions,
+                currentUser: currentUser,
+                attendanceData: attendanceData
+            };
+        }
+
+        // Performance metrics
+        const performanceMetrics = {
+            pageLoadTime: 0,
+            realtimeSetupTime: 0,
+            averageResponseTime: 0
+        };
+
+        // Export for debugging
+        window.employeePortal = {
+            currentUser,
+            realtimeSubscriptions,
+            performanceMetrics,
+            supabase,
+            version: '2.0.0-realtime'
+        };
+
+        console.log('🚀 Employee Management Portal v2.0.0 - Real-time Edition Ready!');
     </script>
 </body>
 </html>
