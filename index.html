@@ -893,7 +893,7 @@
                 <h3>➕ Add New Employee</h3>
                 <button class="close" onclick="closeModal('addEmployeeModal')">&times;</button>
             </div>
-            <form id="addEmployeeForm" novalidate>
+            <form id="addEmployeeForm" novalidate onsubmit="return submitEmployeeForm(event)">
                 <div class="form-row">
                     <div class="input-group">
                         <label>👤 Full Name</label>
@@ -945,6 +945,7 @@
                     </div>
                 </div>
                 <button type="submit" class="btn">Add Employee</button>
+                <button type="button" class="btn btn-info" onclick="testAddEmployee()" style="margin-top: 10px;">🔧 Test Add (Debug)</button>
             </form>
         </div>
     </div>
@@ -1075,30 +1076,82 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM Content Loaded');
             checkAuth();
             setupEventListeners();
             setInterval(updateWorkingTime, 1000);
             setInterval(updateLiveData, 30000); // Update every 30 seconds
+            
+            // Additional form listener setup
+            setTimeout(() => {
+                const form = document.getElementById('addEmployeeForm');
+                if (form) {
+                    console.log('Setting up additional form listener');
+                    form.onsubmit = function(e) {
+                        console.log('Form onsubmit triggered');
+                        return handleAddEmployee(e);
+                    };
+                } else {
+                    console.log('Form still not found after timeout');
+                }
+            }, 2000);
         });
 
         function setupEventListeners() {
+            console.log('Setting up event listeners...');
+            
             document.getElementById('loginForm').addEventListener('submit', handleLogin);
-            document.getElementById('addEmployeeForm').addEventListener('submit', handleAddEmployee);
-            document.getElementById('addTaskForm').addEventListener('submit', handleAddTask);
-            document.getElementById('applyLeaveForm').addEventListener('submit', handleApplyLeave);
+            
+            // Make sure the employee form exists before adding listener
+            const employeeForm = document.getElementById('addEmployeeForm');
+            if (employeeForm) {
+                console.log('Employee form found, adding event listener');
+                employeeForm.addEventListener('submit', handleAddEmployee);
+            } else {
+                console.log('Employee form not found yet, will add listener later');
+                // Add listener after DOM is fully loaded
+                setTimeout(() => {
+                    const form = document.getElementById('addEmployeeForm');
+                    if (form) {
+                        console.log('Adding delayed employee form listener');
+                        form.addEventListener('submit', handleAddEmployee);
+                    }
+                }, 1000);
+            }
+            
+            const taskForm = document.getElementById('addTaskForm');
+            if (taskForm) {
+                taskForm.addEventListener('submit', handleAddTask);
+            }
+            
+            const leaveForm = document.getElementById('applyLeaveForm');
+            if (leaveForm) {
+                leaveForm.addEventListener('submit', handleApplyLeave);
+            }
 
             // Set default dates
             const today = new Date().toISOString().split('T')[0];
             const currentMonth = new Date().toISOString().substring(0, 7);
             
-            document.getElementById('empJoinDate').value = today;
-            document.getElementById('taskDueDate').value = today;
-            document.getElementById('leaveFromDate').value = today;
-            document.getElementById('leaveToDate').value = today;
-            document.getElementById('reportMonth').value = currentMonth;
+            const empJoinDate = document.getElementById('empJoinDate');
+            if (empJoinDate) empJoinDate.value = today;
+            
+            const taskDueDate = document.getElementById('taskDueDate');
+            if (taskDueDate) taskDueDate.value = today;
+            
+            const leaveFromDate = document.getElementById('leaveFromDate');
+            if (leaveFromDate) leaveFromDate.value = today;
+            
+            const leaveToDate = document.getElementById('leaveToDate');
+            if (leaveToDate) leaveToDate.value = today;
+            
+            const reportMonth = document.getElementById('reportMonth');
+            if (reportMonth) reportMonth.value = currentMonth;
 
-            // Form validations
+            // Form validations (disabled)
             setupFormValidations();
+            
+            console.log('Event listeners setup complete');
         }
 
         function checkAuth() {
@@ -1690,37 +1743,62 @@
             
             try {
                 if (currentUser.isDemo) {
-                    container.innerHTML = `
+                    console.log('Loading demo employees...');
+                    
+                    // Get demo employees from localStorage
+                    let demoEmployees = JSON.parse(localStorage.getItem('demoEmployees') || '[]');
+                    
+                    // Add default demo employees if none exist
+                    if (demoEmployees.length === 0) {
+                        demoEmployees = [
+                            {
+                                id: 'emp1',
+                                name: 'John Smith',
+                                email: 'john.smith@company.com',
+                                phone: '+91 9876543210',
+                                department: 'IT',
+                                role: 'employee',
+                                salary: 55000,
+                                join_date: '2023-01-15'
+                            },
+                            {
+                                id: 'emp2',
+                                name: 'Sarah Johnson',
+                                email: 'sarah.johnson@company.com',
+                                phone: '+91 9876543211',
+                                department: 'HR',
+                                role: 'manager',
+                                salary: 75000,
+                                join_date: '2022-08-20'
+                            }
+                        ];
+                        localStorage.setItem('demoEmployees', JSON.stringify(demoEmployees));
+                    }
+                    
+                    console.log('Demo employees:', demoEmployees);
+                    
+                    container.innerHTML = demoEmployees.map(emp => `
                         <div class="employee-card">
                             <div class="employee-info">
-                                <h4>John Smith</h4>
-                                <p>📧 john.smith@company.com | 🏢 IT Department | 👤 Employee</p>
-                                <p>📞 +91 9876543210 | 💰 ₹55,000 | 📅 Joined: 2023-01-15</p>
+                                <h4>${emp.name}</h4>
+                                <p>📧 ${emp.email} | 🏢 ${emp.department} | 👤 ${emp.role}</p>
+                                <p>📞 ${emp.phone} | 💰 ₹${emp.salary} | 📅 Joined: ${emp.join_date}</p>
                             </div>
                             <div class="employee-actions">
-                                <button class="btn-small btn-info" onclick="editEmployee('emp1')">✏️ Edit</button>
-                                <button class="btn-small btn-danger" onclick="deleteEmployee('emp1')">🗑️ Delete</button>
+                                <button class="btn-small btn-info" onclick="editEmployee('${emp.id}')">✏️ Edit</button>
+                                <button class="btn-small btn-danger" onclick="deleteEmployee('${emp.id}')">🗑️ Delete</button>
                             </div>
                         </div>
-                        <div class="employee-card">
-                            <div class="employee-info">
-                                <h4>Sarah Johnson</h4>
-                                <p>📧 sarah.johnson@company.com | 🏢 HR Department | 👤 Manager</p>
-                                <p>📞 +91 9876543211 | 💰 ₹75,000 | 📅 Joined: 2022-08-20</p>
-                            </div>
-                            <div class="employee-actions">
-                                <button class="btn-small btn-info" onclick="editEmployee('emp2')">✏️ Edit</button>
-                                <button class="btn-small btn-danger" onclick="deleteEmployee('emp2')">🗑️ Delete</button>
-                            </div>
-                        </div>
-                    `;
+                    `).join('');
+                    
                     // Load employees in task assignment dropdown
                     const taskAssignSelect = document.getElementById('taskAssignTo');
-                    const options = `
-                        <option value="emp1">John Smith</option>
-                        <option value="emp2">Sarah Johnson</option>
-                    `;
-                    taskAssignSelect.innerHTML = '<option value="">Select Employee</option>' + options;
+                    if (taskAssignSelect) {
+                        const options = demoEmployees.map(emp => `<option value="${emp.id}">${emp.name}</option>`).join('');
+                        taskAssignSelect.innerHTML = '<option value="">Select Employee</option>' + options;
+                    }
+                    
+                    console.log('Demo employees loaded successfully');
                     return;
                 }
 
@@ -1752,7 +1830,10 @@
 
                 // Load employees in dropdowns
                 const options = employees.map(emp => `<option value="${emp.id}">${emp.name}</option>`).join('');
-                document.getElementById('taskAssignTo').innerHTML = '<option value="">Select Employee</option>' + options;
+                const taskAssignSelect = document.getElementById('taskAssignTo');
+                if (taskAssignSelect) {
+                    taskAssignSelect.innerHTML = '<option value="">Select Employee</option>' + options;
+                }
                 
             } catch (error) {
                 console.error('Error loading employees:', error);
@@ -1763,10 +1844,13 @@
         async function handleAddEmployee(e) {
             e.preventDefault();
             
-            // Get all form data WITHOUT any validation
+            console.log('Form submitted - handleAddEmployee called');
+            
+            // Get all form data
             const employeeData = {
-                name: document.getElementById('empName').value || 'Default Name',
-                email: document.getElementById('empEmail').value || 'default@email.com',
+                id: 'emp_' + Date.now(), // Generate unique ID
+                name: document.getElementById('empName').value || 'New Employee',
+                email: document.getElementById('empEmail').value || 'email@company.com',
                 password: document.getElementById('empPassword').value || 'password123',
                 phone: document.getElementById('empPhone').value || '1234567890',
                 department: document.getElementById('empDepartment').value || 'IT',
@@ -1775,50 +1859,64 @@
                 join_date: document.getElementById('empJoinDate').value || '2024-01-01'
             };
             
-            console.log('Employee data collected:', employeeData);
+            console.log('Employee data:', employeeData);
             
             try {
-                // Always use demo mode for now to avoid database issues
-                showNotification('Employee added successfully! 🎉', 'success');
-                closeModal('addEmployeeModal');
-                e.target.reset();
-                loadEmployeeManagement();
-                
-                /*
-                if (currentUser.isDemo) {
-                    showNotification('Employee added successfully! (Demo Mode) 🎉', 'success');
+                if (currentUser && currentUser.isDemo) {
+                    // For demo users - store in localStorage and update UI
+                    console.log('Demo mode - adding to localStorage');
+                    
+                    let demoEmployees = JSON.parse(localStorage.getItem('demoEmployees') || '[]');
+                    demoEmployees.push(employeeData);
+                    localStorage.setItem('demoEmployees', JSON.stringify(demoEmployees));
+                    
+                    console.log('Demo employees updated:', demoEmployees);
+                    
                     closeModal('addEmployeeModal');
                     e.target.reset();
+                    showNotification('Employee added successfully! 🎉', 'success');
+                    
+                    // Force reload employee list
+                    setTimeout(() => {
+                        loadEmployeeManagement();
+                    }, 500);
+                    
+                } else if (currentUser && !currentUser.isDemo) {
+                    // For real users - add to database
+                    console.log('Real mode - adding to database');
+                    
+                    const { error: dbError } = await supabase
+                        .from('employees')
+                        .insert([{
+                            name: employeeData.name,
+                            email: employeeData.email,
+                            phone: employeeData.phone,
+                            department: employeeData.department,
+                            role: employeeData.role,
+                            salary: employeeData.salary,
+                            join_date: employeeData.join_date
+                        }]);
+
+                    if (dbError) {
+                        console.error('Database error:', dbError);
+                        throw dbError;
+                    }
+                    
+                    closeModal('addEmployeeModal');
                     loadEmployeeManagement();
-                    return;
+                    showNotification('Employee added successfully! 🎉', 'success');
+                    e.target.reset();
+                } else {
+                    console.log('No current user found');
+                    showNotification('Please login first!', 'error');
                 }
-
-                // For real implementation, you would need admin access to create users
-                // This is a simplified version
-                const { error: dbError } = await supabase
-                    .from('employees')
-                    .insert([{
-                        name: employeeData.name,
-                        email: employeeData.email,
-                        phone: employeeData.phone,
-                        department: employeeData.department,
-                        role: employeeData.role,
-                        salary: employeeData.salary,
-                        join_date: employeeData.join_date
-                    }]);
-
-                if (dbError) throw dbError;
-                
-                closeModal('addEmployeeModal');
-                loadEmployeeManagement();
-                showNotification('Employee added successfully! 🎉', 'success');
-                e.target.reset();
-                */
                 
             } catch (error) {
                 console.error('Add employee error:', error);
                 showNotification('Failed to add employee ❌', 'error');
             }
+            
+            return false; // Prevent default form submission
         }
 
         async function deleteEmployee(employeeId) {
@@ -1826,7 +1924,13 @@
             
             try {
                 if (currentUser.isDemo) {
-                    showNotification('Employee deleted! (Demo Mode) 🗑️', 'success');
+                    console.log('Demo mode - deleting from localStorage');
+                    
+                    let demoEmployees = JSON.parse(localStorage.getItem('demoEmployees') || '[]');
+                    demoEmployees = demoEmployees.filter(emp => emp.id !== employeeId);
+                    localStorage.setItem('demoEmployees', JSON.stringify(demoEmployees));
+                    
+                    showNotification('Employee deleted! 🗑️', 'success');
                     loadEmployeeManagement();
                     return;
                 }
@@ -2514,6 +2618,47 @@
 
         function closeModal(modalId) {
             document.getElementById(modalId).classList.remove('show');
+        }
+
+        // Global form submission function (called from HTML)
+        function submitEmployeeForm(event) {
+            console.log('submitEmployeeForm called from HTML');
+            handleAddEmployee(event);
+            return false; // Prevent default form submission
+        }
+
+        // Debug function to test employee addition
+        function testAddEmployee() {
+            console.log('Test Add Employee called');
+            console.log('Current user:', currentUser);
+            
+            const testEmployee = {
+                id: 'test_' + Date.now(),
+                name: 'Test Employee',
+                email: 'test@example.com',
+                phone: '1234567890',
+                department: 'IT',
+                role: 'employee',
+                salary: 50000,
+                join_date: '2024-01-01'
+            };
+            
+            if (currentUser && currentUser.isDemo) {
+                let demoEmployees = JSON.parse(localStorage.getItem('demoEmployees') || '[]');
+                demoEmployees.push(testEmployee);
+                localStorage.setItem('demoEmployees', JSON.stringify(demoEmployees));
+                
+                console.log('Test employee added to localStorage');
+                showNotification('Test employee added! 🎉', 'success');
+                closeModal('addEmployeeModal');
+                
+                setTimeout(() => {
+                    loadEmployeeManagement();
+                }, 500);
+            } else {
+                console.log('Not in demo mode or no current user');
+                showNotification('Please login first!', 'error');
+            }
         }
 
         // Placeholder functions for future features
