@@ -1469,12 +1469,20 @@
             const employeeData = {
                 name: document.getElementById('empName').value,
                 email: document.getElementById('empEmail').value,
-                phone: document.getElementById('empPhone').value,
+                phone: document.getElementById('empPhone').value || null,
                 department: document.getElementById('empDepartment').value,
                 role: document.getElementById('empRole').value,
-                salary: parseFloat(document.getElementById('empSalary').value) || 0,
-                join_date: document.getElementById('empJoinDate').value
+                salary: parseFloat(document.getElementById('empSalary').value) || null,
+                join_date: document.getElementById('empJoinDate').value || null
             };
+            
+            // Validate required fields
+            if (!employeeData.name || !employeeData.email) {
+                showNotification('Name and Email are required! ⚠️', 'error');
+                return;
+            }
+            
+            console.log('Adding employee:', employeeData);
             
             try {
                 const { data, error } = await supabase
@@ -1482,15 +1490,19 @@
                     .insert([employeeData])
                     .select();
 
-                if (error) throw error;
+                if (error) {
+                    console.error('Supabase error:', error);
+                    throw error;
+                }
                 
+                console.log('Employee added successfully:', data);
                 showNotification('Employee added successfully! 🎉', 'success');
                 closeModal('addEmployeeModal');
                 e.target.reset();
                 
             } catch (error) {
                 console.error('Add employee error:', error);
-                showNotification('Failed to add employee ❌', 'error');
+                showNotification(`Failed to add employee: ${error.message} ❌`, 'error');
             }
         }
 
