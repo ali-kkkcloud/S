@@ -2701,9 +2701,14 @@
 
         async function checkOut() {
             try {
+                if (!attendanceData.isCheckedIn) {
+                    showNotification('You are not checked in! ⚠️', 'error');
+                    return;
+                }
+                
                 const checkOutTime = new Date();
                 const totalMs = checkOutTime - attendanceData.checkInTime - attendanceData.totalBreakTime;
-                const totalHours = Math.round((totalMs / (1000 * 60 * 60)) * 100) / 100;
+                const totalHours = Math.max(0, Math.round((totalMs / (1000 * 60 * 60)) * 100) / 100);
                 
                 const { error } = await supabase
                     .from('attendance')
@@ -2717,23 +2722,293 @@
 
                 if (error) throw error;
                 
+                // Update UI first
                 document.getElementById('checkOutTime').textContent = checkOutTime.toTimeString().substr(0, 5);
                 
+                // Clear attendance data - DON'T reset to checked in
+                const today = new Date().toISOString().split('T')[0];
+                localStorage.removeItem(`live_attendance_${currentUser.id}_${today}`);
+                
                 attendanceData = {
-                    isCheckedIn: false,
+                    isCheckedIn: false,  // Make sure it's false
                     isOnBreak: false,
                     checkInTime: null,
                     breakStart: null,
                     totalBreakTime: 0
                 };
                 
-                saveAttendanceData();
                 updateAttendanceUI();
                 showNotification(`Live check-out successful! Worked ${totalHours.toFixed(1)}h 🏁🚀`, 'success');
+                
+                // Reload attendance to sync with database
+                setTimeout(() => {
+                    loadAttendance();
+                }, 1000);
                 
             } catch (error) {
                 console.error('Check-out error:', error);
                 showNotification('Live check-out failed ❌', 'error');
+            }
+        }
+
+        // Fix handleAddTask function
+        async function handleAddTask(e) {
+            e.preventDefault();
+            
+            const subtasksText = document.getElementById('taskSubtasks').value;
+            const subtasks = subtasksText
+                .split('\n')
+                .filter(task => task.trim())
+                .map(task => ({ text: task.trim(), completed: false }));
+            
+            const taskData = {
+                title: document.getElementById('taskTitle').value,
+                description: document.getElementById('taskDescription').value || null,
+                priority: document.getElementById('taskPriority').value,
+                due_date: document.getElementById('taskDueDate').value,
+                assigned_to: document.getElementById('taskAssignTo').value,
+                created_by: currentUser.id,
+                status: 'pending',
+                subtasks: subtasks.length > 0 ? JSON.stringify(subtasks) : null,
+                progress: 0
+            };
+            
+            // Validate required fields
+            if (!taskData.title || !taskData.assigned_to || !taskData.due_date) {
+                showNotification('Please fill all required fields! ⚠️', 'error');
+                return;
+            }
+            
+            try {
+                console.log('Adding task:', taskData);
+                
+                const { data, error } = await supabase
+                    .from('tasks')
+                    .insert([taskData])
+                    .select();
+
+                if (error) {
+                    console.error('Task error:', error);
+                    throw error;
+                }
+                
+                showNotification(`Live task assigned with ${subtasks.length} checklist items! 📝🚀`, 'success');
+                closeModal('addTaskModal');
+                e.target.reset();
+                
+            } catch (error) {
+                console.error('Add task error:', error);
+                if (error.message.includes('column') && error.message.includes('does not exist')) {
+                    showNotification('Database structure issue! Please run SQL fixes first. ⚠️', 'error');
+                } else {
+                    showNotification(`Failed to assign task: ${error.message} ❌`, 'error');
+                }
+            }
+        }
+
+        // Fix handleApplyLeave function
+        async function handleApplyLeave(e) {
+            e.preventDefault();
+            
+            const fromDate = new Date(document.getElementById('leaveFromDate').value);
+            const toDate = new Date(document.getElementById('leaveToDate').value);
+            const days = Math.ceil((toDate - fromDate) / (1000 * 60 * 60 * 24)) + 1;
+            
+            const leaveData = {
+                employee_id: currentUser.id,
+                leave_type: document.getElementById('leaveType').value,
+                from_date: document.getElementById('leaveFromDate').value,
+                to_date: document.getElementById('leaveToDate').value,
+                reason: document.getElementById('leaveReason').value,
+                status: 'pending',
+                days: days
+            };
+            
+            // Validate required fields
+            if (!leaveData.leave_type || !leaveData.from_date || !leaveData.to_date || !leaveData.reason) {
+                showNotification('Please fill all required fields! ⚠️', 'error');
+                return;
+            }
+            
+            try {
+                console.log('Adding leave request:', leaveData);
+                
+                const { data, error } = await supabase
+                    .from('leave_requests')
+                    .insert([leaveData])
+                    .select();
+
+                if (error) {
+                    console.error('Leave error:', error);
+                    throw error;
+                }
+                
+                showNotification(`Live leave request submitted for ${days} day(s)! 🏖️🚀`, 'success');
+                closeModal('applyLeaveModal');
+                e.target.reset();
+                
+            } catch (error) {
+                console.error('Apply leave error:', error);
+                if (error.message.includes('column') && error.message.includes('does not exist')) {
+                    showNotification('Database structure issue! Please run SQL fixes first. ⚠️', 'error');
+                } else {
+                    showNotification(`Failed to submit leave: ${error.message} ❌`, 'error');
+                }
+            }
+        }
+
+        // Fix handleCreateRoster function
+        async function handleCreateRoster(e) {
+            e.preventDefault();
+            
+            const rosterData = {
+                employee_id: document.getElementById('rosterEmployee').value,
+                date: document.getElementById('rosterDate').value,
+                shift: document.getElementById('rosterShift').value,
+                location: document.getElementById('rosterLocation').value,
+                notes: document.getElementById('rosterNotes').value || null,
+                created_by: currentUser.id
+            };
+            
+            // Validate required fields
+            if (!rosterData.employee_id || !rosterData.date || !rosterData.shift) {
+                showNotification('Please fill all required fields! ⚠️', 'error');
+                return;
+            }
+            
+            try {
+                console.log('Creating roster:', rosterData);
+                
+                const { data, error } = await supabase
+                    .from('roster')
+                    .upsert([rosterData])
+                    .select();
+
+                if (error) {
+                    console.error('Roster error:', error);
+                    throw error;
+                }
+                
+                showNotification('Live employee schedule created! 📅🚀', 'success');
+                closeModal('createRosterModal');
+                e.target.reset();
+                
+            } catch (error) {
+                console.error('Create roster error:', error);
+                if (error.message.includes('column') && error.message.includes('does not exist')) {
+                    showNotification('Database structure issue! Please run SQL fixes first. ⚠️', 'error');
+                } else {
+                    showNotification(`Failed to create schedule: ${error.message} ❌`, 'error');
+                }
+            }
+        }
+
+        // Enhanced loadAttendance function
+        function loadAttendance() {
+            const today = new Date().toISOString().split('T')[0];
+            const saved = localStorage.getItem(`live_attendance_${currentUser.id}_${today}`);
+            
+            // Reset attendance data first
+            attendanceData = {
+                isCheckedIn: false,
+                isOnBreak: false,
+                checkInTime: null,
+                breakStart: null,
+                totalBreakTime: 0
+            };
+            
+            if (saved) {
+                try {
+                    const parsedData = JSON.parse(saved);
+                    attendanceData = { ...attendanceData, ...parsedData };
+                    
+                    if (attendanceData.checkInTime) {
+                        attendanceData.checkInTime = new Date(attendanceData.checkInTime);
+                    }
+                    if (attendanceData.breakStart) {
+                        attendanceData.breakStart = new Date(attendanceData.breakStart);
+                    }
+                } catch (error) {
+                    console.error('Error parsing attendance data:', error);
+                    localStorage.removeItem(`live_attendance_${currentUser.id}_${today}`);
+                }
+            }
+            
+            updateAttendanceUI();
+            console.log('Attendance loaded:', attendanceData);
+        }
+
+        // Enhanced error handling for database operations
+        async function executeWithErrorHandling(operation, operationName) {
+            try {
+                return await operation();
+            } catch (error) {
+                console.error(`${operationName} error:`, error);
+                
+                if (error.message.includes('column') && error.message.includes('does not exist')) {
+                    showNotification(`Database structure issue in ${operationName}! Please run SQL fixes. ⚠️`, 'error');
+                    
+                    // Show detailed error in console
+                    console.error('Missing column error. Please run these SQL commands in Supabase:');
+                    console.error(`
+-- Fix missing columns
+ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS days INTEGER;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS subtasks TEXT;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS progress INTEGER DEFAULT 0;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS created_by UUID;
+ALTER TABLE attendance ADD COLUMN IF NOT EXISTS break_time INTEGER DEFAULT 0;
+ALTER TABLE attendance ADD COLUMN IF NOT EXISTS total_hours DECIMAL(4,2) DEFAULT 0;
+ALTER TABLE roster ADD COLUMN IF NOT EXISTS created_by UUID;
+ALTER TABLE roster ADD COLUMN IF NOT EXISTS notes TEXT;
+                    `);
+                } else {
+                    showNotification(`${operationName} failed: ${error.message} ❌`, 'error');
+                }
+                
+                throw error;
+            }
+        }
+
+        // Add database structure check function
+        async function checkDatabaseStructure() {
+            try {
+                console.log('🔍 Checking database structure...');
+                
+                // Test if all required columns exist
+                const tests = [
+                    { table: 'employees', data: { name: 'test', email: 'test@test.com', password: 'test123' } },
+                    { table: 'tasks', data: { title: 'test', assigned_to: currentUser.id, created_by: currentUser.id, subtasks: '[]', progress: 0 } },
+                    { table: 'leave_requests', data: { employee_id: currentUser.id, leave_type: 'casual', from_date: '2024-01-01', to_date: '2024-01-01', reason: 'test', status: 'pending', days: 1 } },
+                    { table: 'roster', data: { employee_id: currentUser.id, date: '2024-01-01', shift: 'morning', location: 'office', created_by: currentUser.id, notes: 'test' } },
+                    { table: 'attendance', data: { employee_id: currentUser.id, date: '2024-01-01', status: 'present', total_hours: 8.0, break_time: 30 } }
+                ];
+                
+                for (const test of tests) {
+                    try {
+                        // Try to insert and immediately delete (to test structure)
+                        const { data, error } = await supabase
+                            .from(test.table)
+                            .insert([test.data])
+                            .select();
+                        
+                        if (data && data[0]) {
+                            await supabase
+                                .from(test.table)
+                                .delete()
+                                .eq('id', data[0].id);
+                        }
+                        
+                        if (error) throw error;
+                        console.log(`✅ ${test.table} structure OK`);
+                        
+                    } catch (error) {
+                        console.error(`❌ ${test.table} structure issue:`, error.message);
+                        showNotification(`Database structure issue in ${test.table}! ⚠️`, 'error');
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Database structure check failed:', error);
             }
         }
 
