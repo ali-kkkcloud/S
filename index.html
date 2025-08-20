@@ -2364,6 +2364,91 @@
                                         <strong>📝 Live Checklist:</strong>
                                         ${subtasks.map((subtask, index) => `
                                             <div class="checklist-item ${subtask.completed ? 'completed' : ''}">
+                                                <input type="checkbox" ${subtask.completed ? 'checked' : ''} 
+                                                       onchange="updateSubtask('${task.id}', ${index}, this.checked)">
+                                                <span style="${subtask.completed ? 'text-decoration: line-through; color: #666;' : ''}">${subtask.text}</span>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                ` : ''}
+                                
+                                <div class="task-meta">
+                                    <span>Due: ${new Date(task.due_date).toLocaleDateString()}</span>
+                                    <span class="status-badge ${task.status === 'completed' ? 'status-working' : task.status === 'in_progress' ? 'status-break' : 'status-out'}">${task.status}</span>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                    
+                    // Update live stats
+                    updateStatCard('totalTasks', tasks.length);
+                    const completedTasks = tasks.filter(t => t.status === 'completed').length;
+                    const completion = tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0;
+                    updateStatCard('taskCompletion', `${completion}%`);
+                    
+                } else {
+                    container.innerHTML = '<p style="text-align: center; color: #666;">No live tasks assigned yet 📋</p>';
+                    updateStatCard('totalTasks', '0');
+                    updateStatCard('taskCompletion', '0%');
+                }
+                
+                console.log('✅ Live tasks loaded:', tasks?.length || 0);
+                
+            } catch (error) {
+                console.error('Error loading tasks:', error);
+                container.innerHTML = '<p style="color: #e53e3e;">Error loading live tasks</p>';
+            }
+        }
+
+        // FIXED: Complete Task Management Function
+        async function loadTaskManagement() {
+            const container = document.getElementById('allTasksList');
+            
+            if (!container) return;
+            
+            try {
+                const { data: tasks } = await supabase
+                    .from('tasks')
+                    .select(`
+                        *,
+                        assignee:employees!tasks_assigned_to_fkey(name),
+                        creator:employees!tasks_created_by_fkey(name)
+                    `)
+                    .order('created_at', { ascending: false });
+
+                if (tasks && tasks.length > 0) {
+                    container.innerHTML = `
+                        <div style="margin-bottom: 15px; padding: 10px; background: #e6fffa; border-radius: 8px; text-align: center;">
+                            <strong>🚀 Live Task Management: ${tasks.length} total tasks</strong>
+                        </div>
+                    ` + tasks.map(task => {
+                        const subtasks = task.subtasks ? JSON.parse(task.subtasks) : [];
+                        const completedSubtasks = subtasks.filter(st => st.completed).length;
+                        const progress = subtasks.length > 0 ? Math.round((completedSubtasks / subtasks.length) * 100) : 0;
+                        
+                        return `
+                            <div class="task-item">
+                                <div class="task-header">
+                                    <div>
+                                        <div class="task-title">🚀 ${task.title}</div>
+                                        <p>Assigned to: ${task.assignee?.name || 'Unknown'} | Created by: ${task.creator?.name || 'Unknown'}</p>
+                                    </div>
+                                    <span class="priority-${task.priority}">${getPriorityIcon(task.priority)} ${task.priority.toUpperCase()}</span>
+                                </div>
+                                <p>${task.description || 'No description'}</p>
+                                
+                                ${subtasks.length > 0 ? `
+                                    <div class="task-progress">
+                                        <div class="progress-bar">
+                                            <div class="progress-fill" style="width: ${progress}%"></div>
+                                        </div>
+                                        <div class="progress-text">Live Progress: ${completedSubtasks}/${subtasks.length} items (${progress}%)</div>
+                                    </div>
+                                    
+                                    <div class="task-checklist">
+                                        <strong>📝 Live Checklist:</strong>
+                                        ${subtasks.map((subtask, index) => `
+                                            <div class="checklist-item ${subtask.completed ? 'completed' : ''}">
                                                 <input type="checkbox" ${subtask.completed ? 'checked' : ''} disabled>
                                                 <span style="${subtask.completed ? 'text-decoration: line-through; color: #666;' : ''}">${subtask.text}</span>
                                             </div>
@@ -3561,88 +3646,4 @@
         console.log('🎉 COMPLETE REAL-TIME EMPLOYEE PORTAL - FULLY OPERATIONAL WITH ALL FIXES! 🚀');
     </script>
 </body>
-</html>progress-fill" style="width: ${progress}%"></div>
-                                        </div>
-                                        <div class="progress-text">Live Progress: ${completedSubtasks}/${subtasks.length} items (${progress}%)</div>
-                                    </div>
-                                    
-                                    <div class="task-checklist">
-                                        <strong>📝 Live Checklist:</strong>
-                                        ${subtasks.map((subtask, index) => `
-                                            <div class="checklist-item ${subtask.completed ? 'completed' : ''}">
-                                                <input type="checkbox" ${subtask.completed ? 'checked' : ''} 
-                                                       onchange="updateSubtask('${task.id}', ${index}, this.checked)">
-                                                <span style="${subtask.completed ? 'text-decoration: line-through; color: #666;' : ''}">${subtask.text}</span>
-                                            </div>
-                                        `).join('')}
-                                    </div>
-                                ` : ''}
-                                
-                                <div class="task-meta">
-                                    <span>Due: ${new Date(task.due_date).toLocaleDateString()}</span>
-                                    <span class="status-badge ${task.status === 'completed' ? 'status-working' : task.status === 'in_progress' ? 'status-break' : 'status-out'}">${task.status}</span>
-                                </div>
-                            </div>
-                        `;
-                    }).join('');
-                    
-                    // Update live stats
-                    updateStatCard('totalTasks', tasks.length);
-                    const completedTasks = tasks.filter(t => t.status === 'completed').length;
-                    const completion = tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0;
-                    updateStatCard('taskCompletion', `${completion}%`);
-                    
-                } else {
-                    container.innerHTML = '<p style="text-align: center; color: #666;">No live tasks assigned yet 📋</p>';
-                    updateStatCard('totalTasks', '0');
-                    updateStatCard('taskCompletion', '0%');
-                }
-                
-                console.log('✅ Live tasks loaded:', tasks?.length || 0);
-                
-            } catch (error) {
-                console.error('Error loading tasks:', error);
-                container.innerHTML = '<p style="color: #e53e3e;">Error loading live tasks</p>';
-            }
-        }
-
-        async function loadTaskManagement() {
-            const container = document.getElementById('allTasksList');
-            
-            if (!container) return;
-            
-            try {
-                const { data: tasks } = await supabase
-                    .from('tasks')
-                    .select(`
-                        *,
-                        assignee:employees!tasks_assigned_to_fkey(name),
-                        creator:employees!tasks_created_by_fkey(name)
-                    `)
-                    .order('created_at', { ascending: false });
-
-                if (tasks && tasks.length > 0) {
-                    container.innerHTML = `
-                        <div style="margin-bottom: 15px; padding: 10px; background: #e6fffa; border-radius: 8px; text-align: center;">
-                            <strong>🚀 Live Task Management: ${tasks.length} total tasks</strong>
-                        </div>
-                    ` + tasks.map(task => {
-                        const subtasks = task.subtasks ? JSON.parse(task.subtasks) : [];
-                        const completedSubtasks = subtasks.filter(st => st.completed).length;
-                        const progress = subtasks.length > 0 ? Math.round((completedSubtasks / subtasks.length) * 100) : 0;
-                        
-                        return `
-                            <div class="task-item">
-                                <div class="task-header">
-                                    <div>
-                                        <div class="task-title">🚀 ${task.title}</div>
-                                        <p>Assigned to: ${task.assignee?.name || 'Unknown'} | Created by: ${task.creator?.name || 'Unknown'}</p>
-                                    </div>
-                                    <span class="priority-${task.priority}">${getPriorityIcon(task.priority)} ${task.priority.toUpperCase()}</span>
-                                </div>
-                                <p>${task.description || 'No description'}</p>
-                                
-                                ${subtasks.length > 0 ? `
-                                    <div class="task-progress">
-                                        <div class="progress-bar">
-                                            <div class="
+</html>
