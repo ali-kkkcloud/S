@@ -749,7 +749,7 @@ function showEmployeeDashboard() {
     }
 }
 
-// ENHANCED LIVE EMPLOYEE MONITOR - FIXED WITH PROPER CALCULATIONS
+// ENHANCED LIVE EMPLOYEE MONITOR - FIXED WITH PROPER CALCULATIONS AND BREAK FORMATTING
 async function loadLiveEmployeeMonitor() {
     const container = document.getElementById('liveEmployeeMonitor');
     if (!container || !hasManagerAccess()) return;
@@ -812,6 +812,11 @@ async function loadLiveEmployeeMonitor() {
                     const workMinutes = Math.round((currentWorkingHours - workHours) * 60);
                     const workDisplay = `${workHours}h ${workMinutes}m`;
                     
+                    // FIXED: Format break time in hours and minutes
+                    const breakHours = Math.floor(currentBreakMinutes / 60);
+                    const breakMins = currentBreakMinutes % 60;
+                    const breakDisplay = breakHours > 0 ? `${breakHours}h ${breakMins}m` : `${breakMins}m`;
+                    
                     // FIXED: Determine shift compliance
                     let shiftStatus = 'On Time';
                     let shiftStatusColor = '#48bb78';
@@ -822,7 +827,9 @@ async function loadLiveEmployeeMonitor() {
                         
                         if (checkIn > expectedStart) {
                             const lateMinutes = Math.round((checkIn - expectedStart) / (1000 * 60));
-                            shiftStatus = `Late by ${lateMinutes}m`;
+                            const lateHours = Math.floor(lateMinutes / 60);
+                            const lateMins = lateMinutes % 60;
+                            shiftStatus = lateHours > 0 ? `Late by ${lateHours}h ${lateMins}m` : `Late by ${lateMins}m`;
                             shiftStatusColor = '#e53e3e';
                         }
                     } else if (isOnline && !isPresent) {
@@ -907,7 +914,9 @@ async function loadLiveEmployeeMonitor() {
                                     
                                     <div class="detail-item">
                                         <span class="detail-label">Break Time</span>
-                                        <span class="detail-value">${currentBreakMinutes}m</span>
+                                        <span class="detail-value" style="color: ${isOnBreak ? '#ed8936' : '#718096'}; font-weight: ${isOnBreak ? 'bold' : 'normal'};">
+                                            ${breakDisplay}
+                                        </span>
                                     </div>
                                     
                                     <div class="detail-item">
@@ -1101,42 +1110,61 @@ async function handleSmartSchedule(e) {
         return;
     }
     
-    // FIXED: Validate shift value
-    if (!VALID_SHIFTS.includes(selectedShift)) {
-        showNotification('Invalid shift type selected! ⚠️', 'error');
+    // FIXED: Ensure valid shift values for database
+    const validShifts = ['morning', 'evening', 'night', 'off'];
+    if (!validShifts.includes(selectedShift)) {
+        showNotification('Invalid shift type selected! Please select a valid shift. ⚠️', 'error');
+        return;
+    }
+    
+    const employeeId = document.getElementById('smartEmployee').value;
+    const scheduleDate = document.getElementById('smartDate').value;
+    
+    if (!employeeId || !scheduleDate) {
+        showNotification('Please select employee and date! ⚠️', 'error');
         return;
     }
     
     const scheduleData = {
-        employee_id: document.getElementById('smartEmployee').value,
-        date: document.getElementById('smartDate').value,
-        shift: selectedShift,
-        location: document.getElementById('smartLocation').value,
-        notes: document.getElementById('smartNotes').value,
+        employee_id: employeeId,
+        date: scheduleDate,
+        shift: selectedShift.toLowerCase(), // Ensure lowercase for database
+        location: document.getElementById('smartLocation').value || 'office',
+        notes: document.getElementById('smartNotes').value || `${selectedShift} shift schedule`,
         created_by: currentUser.id
     };
     
     try {
-        console.log('Creating smart schedule:', scheduleData);
+        console.log('Creating smart schedule with data:', scheduleData);
         
-        const { error } = await supabase
+        // FIXED: Use upsert for handling existing records
+        const { data, error } = await supabase
             .from('roster')
-            .upsert([scheduleData]);
+            .upsert([scheduleData], {
+                onConflict: 'employee_id,date'
+            })
+            .select();
 
         if (error) {
-            console.error('Smart schedule error:', error);
-            throw error;
+            console.error('Smart schedule database error:', error);
+            throw new Error(error.message || 'Database error occurred');
         }
         
-        showNotification('Smart schedule created successfully! 🎯🚀', 'success');
+        console.log('Smart schedule created successfully:', data);
+        showNotification(`Smart schedule created successfully! ${selectedShift} shift assigned 🎯🚀`, 'success');
         closeModal('smartSchedulerModal');
         e.target.reset();
         
-        // Reset shift selection
+        // Reset shift selection UI
         document.querySelectorAll('.shift-card').forEach(card => {
             card.classList.remove('selected');
         });
         document.getElementById('selectedShift').value = '';
+        
+        // Reload roster data if on roster tab
+        if (document.getElementById('tab-rosterManagement').classList.contains('active')) {
+            loadRosterData();
+        }
         
     } catch (error) {
         console.error('Create smart schedule error:', error);
