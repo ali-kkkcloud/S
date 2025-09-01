@@ -102,7 +102,8 @@
                     </div>
                 </div>
 
-                <div class="grid">
+                <!-- Employee Personal Dashboard -->
+                <div id="employeePersonalDashboard" class="grid">
                     <!-- Live Attendance Card -->
                     <div class="card" id="attendanceCard">
                         <h2>
@@ -159,6 +160,53 @@
                         </h2>
                         <div id="mySchedule">
                             <!-- Live schedule updates -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Manager Dashboard - Employee Monitoring -->
+                <div id="managerDashboard" style="display: none;">
+                    <h2 style="margin-bottom: 20px; text-align: center; color: #2d3748;">📊 Live Employee Monitoring Dashboard</h2>
+                    
+                    <!-- Manager Stats -->
+                    <div class="stats-grid" style="margin-bottom: 30px;">
+                        <div class="stat-card">
+                            <div class="stat-number" id="totalEmployeesManager">0</div>
+                            <div class="stat-label">Total Employees</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="presentTodayManager">0</div>
+                            <div class="stat-label">Present Today</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="onlineNowManager">0</div>
+                            <div class="stat-label">Online Now</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="avgWorkHoursManager">0h</div>
+                            <div class="stat-label">Avg Work Hours</div>
+                        </div>
+                    </div>
+
+                    <!-- Live Employee Activity Monitor -->
+                    <div class="card">
+                        <h2>
+                            <div class="card-icon">👥</div>
+                            Live Employee Activity Monitor
+                        </h2>
+                        <div id="liveEmployeeMonitor">
+                            <!-- Live employee monitoring data -->
+                        </div>
+                    </div>
+
+                    <!-- Recent Login Activity -->
+                    <div class="card">
+                        <h2>
+                            <div class="card-icon">🔐</div>
+                            Recent Login Sessions
+                        </h2>
+                        <div id="recentLoginSessions">
+                            <!-- Recent login sessions -->
                         </div>
                     </div>
                 </div>
