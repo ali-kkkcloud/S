@@ -976,37 +976,164 @@ body {
     color: white;
 }
 
-/* Enhanced Stats Grid for Login Activity */
-#employeeLoginCard .stats-grid {
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 12px;
-    margin-bottom: 20px;
+/* Manager Dashboard Styles */
+.employee-monitor-card {
+    background: white;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 18px;
+    transition: all 0.3s;
+    border-left: 4px solid #e2e8f0;
 }
 
-#employeeLoginCard .stat-card {
-    padding: 16px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+.employee-monitor-card.online.present {
+    border-left-color: #48bb78;
+    background: linear-gradient(135deg, #f0fff4 0%, #ffffff 100%);
+    box-shadow: 0 4px 20px rgba(72, 187, 120, 0.1);
+}
+
+.employee-monitor-card.online:not(.present) {
+    border-left-color: #4299e1;
+    background: linear-gradient(135deg, #f0f9ff 0%, #ffffff 100%);
+}
+
+.employee-monitor-card.offline {
+    border-left-color: #e53e3e;
+    background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%);
+}
+
+.employee-monitor-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.monitor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.status-indicators {
+    display: flex;
+    gap: 4px;
+}
+
+.online-indicator.active,
+.present-indicator.active {
+    animation: pulse 2s infinite;
+}
+
+.shift-status {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.8);
+}
+
+.monitor-details {
+    margin-top: 12px;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 8px;
+    background: #f8fafc;
+    border-radius: 8px;
     border: 1px solid #e2e8f0;
+}
+
+.detail-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: #718096;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.detail-value {
+    font-size: 12px;
+    font-weight: 700;
+    color: #2d3748;
+}
+
+/* Login Session Styles */
+.login-session-item {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 12px;
+    border-left: 4px solid #e2e8f0;
     transition: all 0.3s;
 }
 
-#employeeLoginCard .stat-card:hover {
+.login-session-item.active {
+    border-left-color: #48bb78;
+    background: linear-gradient(135deg, #f0fff4 0%, #ffffff 100%);
+}
+
+.login-session-item.completed {
+    border-left-color: #4299e1;
+    background: linear-gradient(135deg, #f0f9ff 0%, #ffffff 100%);
+}
+
+.login-session-item:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+/* Manager Stats Grid */
+#managerDashboard .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+#managerDashboard .stat-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border: 2px solid #e2e8f0;
+    transition: all 0.3s;
+}
+
+#managerDashboard .stat-card:hover {
+    border-color: #667eea;
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
 }
 
-#employeeLoginCard .stat-number {
-    font-size: 24px;
-    font-weight: 800;
-    margin-bottom: 6px;
-}
-
-#employeeLoginCard .stat-label {
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+/* Responsive adjustments for manager dashboard */
+@media (max-width: 768px) {
+    .detail-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+    
+    .detail-item {
+        padding: 6px;
+    }
+    
+    .employee-monitor-card {
+        padding: 14px;
+    }
+    
+    .monitor-header {
+        flex-direction: column;
+        gap: 8px;
+        text-align: center;
+    }
 }
 
 /* Modal */
