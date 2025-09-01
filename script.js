@@ -1,5 +1,5 @@
 // 🚀 ENHANCED REAL-TIME EMPLOYEE MANAGEMENT PORTAL - COMPLETE FIXED VERSION
-console.log('🚀 LOADING ENHANCED REAL-TIME SYSTEM...');
+console.log('LOADING ENHANCED REAL-TIME SYSTEM...');
 
 // Supabase Configuration
 const SUPABASE_URL = 'https://sizbhnyyyvbkuarulcmz.supabase.co';
