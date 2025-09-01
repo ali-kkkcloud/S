@@ -915,12 +915,18 @@ function updateTabBadges() {
 function loadTabData(tabId) {
     switch(tabId) {
         case 'employeeDashboard':
-            loadMyTasks();
-            loadMySchedule();
-            loadAttendance();
             if (hasManagerAccess()) {
-                loadEmployeeLoginActivity(); // Manager dashboard shows employee login activity
-                updateLoginStats();
+                // Manager sees employee monitoring dashboard
+                showManagerDashboard();
+                loadLiveEmployeeMonitor();
+                loadRecentLoginSessions();
+                updateManagerStats();
+            } else {
+                // Employee sees personal dashboard
+                showEmployeeDashboard();
+                loadMyTasks();
+                loadMySchedule();
+                loadAttendance();
             }
             break;
         case 'employeeManagement':
@@ -939,6 +945,269 @@ function loadTabData(tabId) {
         case 'leaveManagement':
             loadLeaveManagement();
             break;
+    }
+}
+
+function showManagerDashboard() {
+    document.getElementById('employeePersonalDashboard').style.display = 'none';
+    document.getElementById('managerDashboard').style.display = 'block';
+    
+    // Hide personal stats for manager
+    const statsGrid = document.querySelector('#employeeDashboard .stats-grid');
+    if (statsGrid) {
+        statsGrid.style.display = 'none';
+    }
+}
+
+function showEmployeeDashboard() {
+    document.getElementById('employeePersonalDashboard').style.display = 'block';
+    document.getElementById('managerDashboard').style.display = 'none';
+    
+    // Show personal stats for employee
+    const statsGrid = document.querySelector('#employeeDashboard .stats-grid');
+    if (statsGrid) {
+        statsGrid.style.display = 'grid';
+    }
+}
+
+// Manager Functions - Live Employee Monitoring
+async function loadLiveEmployeeMonitor() {
+    const container = document.getElementById('liveEmployeeMonitor');
+    if (!container || !hasManagerAccess()) return;
+    
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        
+        // Get all employees with their attendance and login sessions
+        const { data: employees } = await supabase
+            .from('employees')
+            .select(`
+                id, name, department, role,
+                attendance!left(status, check_in, check_out, break_time, total_hours),
+                login_sessions!left(login_time, logout_time, is_active, device_info)
+            `)
+            .eq('attendance.date', today)
+            .order('name');
+
+        if (!employees || employees.length === 0) {
+            container.innerHTML = '<div style="text-align: center; color: #666; padding: 40px;">No employees to monitor</div>';
+            return;
+        }
+
+        container.innerHTML = `
+            <div style="display: grid; gap: 16px; max-height: 500px; overflow-y: auto;">
+                ${employees.map(emp => {
+                    const attendance = emp.attendance && emp.attendance.length > 0 ? emp.attendance[0] : null;
+                    const loginSession = emp.login_sessions && emp.login_sessions.length > 0 ? 
+                        emp.login_sessions.find(s => s.is_active) || emp.login_sessions[0] : null;
+                    
+                    const isOnline = loginSession && loginSession.is_active;
+                    const isPresent = attendance && attendance.status === 'present';
+                    const checkInTime = attendance ? attendance.check_in : null;
+                    const workingHours = attendance ? attendance.total_hours || 0 : 0;
+                    const breakTime = attendance ? attendance.break_time || 0 : 0;
+                    
+                    // Determine shift compliance
+                    let shiftStatus = 'On Time';
+                    let shiftStatusColor = '#48bb78';
+                    
+                    if (checkInTime) {
+                        const checkIn = new Date(`${today} ${checkInTime}`);
+                        const expectedStart = new Date(`${today} 09:00:00`); // Assuming 9 AM start
+                        
+                        if (checkIn > expectedStart) {
+                            const lateMinutes = Math.round((checkIn - expectedStart) / (1000 * 60));
+                            shiftStatus = `Late by ${lateMinutes}m`;
+                            shiftStatusColor = '#e53e3e';
+                        }
+                    }
+                    
+                    return `
+                        <div class="employee-monitor-card ${isOnline ? 'online' : 'offline'} ${isPresent ? 'present' : 'absent'}">
+                            <div class="monitor-header">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div class="status-indicators">
+                                        <span class="online-indicator ${isOnline ? 'active' : 'inactive'}" title="${isOnline ? 'Online' : 'Offline'}">
+                                            ${isOnline ? '🟢' : '🔴'}
+                                        </span>
+                                        <span class="present-indicator ${isPresent ? 'active' : 'inactive'}" title="${isPresent ? 'Present' : 'Absent'}">
+                                            ${isPresent ? '💼' : '🏠'}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <h4 style="margin: 0; color: #2d3748; font-size: 16px;">${emp.name}</h4>
+                                        <p style="margin: 0; color: #718096; font-size: 12px;">${emp.department} | ${emp.role}</p>
+                                    </div>
+                                </div>
+                                <div class="shift-status" style="color: ${shiftStatusColor}; font-size: 11px; font-weight: 600;">
+                                    ${shiftStatus}
+                                </div>
+                            </div>
+                            
+                            <div class="monitor-details">
+                                <div class="detail-grid">
+                                    <div class="detail-item">
+                                        <span class="detail-label">Login</span>
+                                        <span class="detail-value">
+                                            ${loginSession && loginSession.login_time ? 
+                                                new Date(loginSession.login_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 
+                                                '--:--'
+                                            }
+                                        </span>
+                                    </div>
+                                    
+                                    <div class="detail-item">
+                                        <span class="detail-label">Check In</span>
+                                        <span class="detail-value">${checkInTime || '--:--'}</span>
+                                    </div>
+                                    
+                                    <div class="detail-item">
+                                        <span class="detail-label">Work Hours</span>
+                                        <span class="detail-value">${workingHours.toFixed(1)}h</span>
+                                    </div>
+                                    
+                                    <div class="detail-item">
+                                        <span class="detail-label">Break Time</span>
+                                        <span class="detail-value">${breakTime}m</span>
+                                    </div>
+                                    
+                                    <div class="detail-item">
+                                        <span class="detail-label">Device</span>
+                                        <span class="detail-value">
+                                            ${loginSession ? loginSession.device_info || 'Unknown' : '--'}
+                                        </span>
+                                    </div>
+                                    
+                                    <div class="detail-item">
+                                        <span class="detail-label">Status</span>
+                                        <span class="detail-value">
+                                            ${isOnline && isPresent ? '🔥 Active' : 
+                                              isOnline ? '💻 Online' : 
+                                              isPresent ? '💼 Present' : '⭕ Offline'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+        
+    } catch (error) {
+        console.error('Error loading employee monitor:', error);
+        container.innerHTML = '<div style="color: #e53e3e; text-align: center; padding: 20px;">Error loading employee data</div>';
+    }
+}
+
+async function loadRecentLoginSessions() {
+    const container = document.getElementById('recentLoginSessions');
+    if (!container || !hasManagerAccess()) return;
+    
+    try {
+        const { data: sessions } = await supabase
+            .from('login_sessions')
+            .select(`
+                id, login_time, logout_time, session_duration, device_info, is_active,
+                employee:employees(name, department, role)
+            `)
+            .order('login_time', { ascending: false })
+            .limit(10);
+
+        if (!sessions || sessions.length === 0) {
+            container.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">No recent sessions</div>';
+            return;
+        }
+
+        container.innerHTML = `
+            <div style="display: grid; gap: 12px; max-height: 300px; overflow-y: auto;">
+                ${sessions.map(session => {
+                    const loginTime = new Date(session.login_time);
+                    const isActive = session.is_active;
+                    const duration = session.session_duration ? 
+                        `${Math.floor(session.session_duration / 60)}h ${session.session_duration % 60}m` : 
+                        (isActive ? 'Active' : 'Unknown');
+                    
+                    return `
+                        <div class="login-session-item ${isActive ? 'active' : 'completed'}">
+                            <div style="display: flex; justify-content: between; align-items: center;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 16px;">${isActive ? '🟢' : '🔵'}</span>
+                                    <div>
+                                        <div style="font-weight: 600; color: #2d3748; font-size: 14px;">
+                                            ${session.employee?.name || 'Unknown'}
+                                        </div>
+                                        <div style="font-size: 11px; color: #718096;">
+                                            ${session.employee?.department} | ${session.device_info || 'Unknown Device'}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style="text-align: right; font-size: 11px;">
+                                    <div style="color: #4a5568; font-weight: 600;">
+                                        ${loginTime.toLocaleDateString()} ${loginTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                    </div>
+                                    <div style="color: #718096;">
+                                        Duration: ${duration}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+        
+    } catch (error) {
+        console.error('Error loading recent sessions:', error);
+        container.innerHTML = '<div style="color: #e53e3e; text-align: center;">Error loading sessions</div>';
+    }
+}
+
+async function updateManagerStats() {
+    if (!hasManagerAccess()) return;
+    
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        
+        // Total employees
+        const { data: allEmployees } = await supabase
+            .from('employees')
+            .select('id');
+        
+        // Present today
+        const { data: presentEmployees } = await supabase
+            .from('attendance')
+            .select('id')
+            .eq('date', today)
+            .eq('status', 'present');
+        
+        // Online now
+        const { data: onlineEmployees } = await supabase
+            .from('login_sessions')
+            .select('id')
+            .eq('is_active', true);
+        
+        // Average work hours
+        const { data: workHours } = await supabase
+            .from('attendance')
+            .select('total_hours')
+            .eq('date', today)
+            .not('total_hours', 'is', null);
+        
+        let avgWorkHours = '0h';
+        if (workHours && workHours.length > 0) {
+            const totalHours = workHours.reduce((sum, att) => sum + (att.total_hours || 0), 0);
+            const avgHours = Math.round(totalHours / workHours.length);
+            avgWorkHours = `${avgHours}h`;
+        }
+        
+        updateStatCard('totalEmployeesManager', allEmployees?.length || 0);
+        updateStatCard('presentTodayManager', presentEmployees?.length || 0);
+        updateStatCard('onlineNowManager', onlineEmployees?.length || 0);
+        updateStatCard('avgWorkHoursManager', avgWorkHours);
+        
+    } catch (error) {
+        console.error('Error updating manager stats:', error);
     }
 }
 
