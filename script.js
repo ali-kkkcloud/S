@@ -970,7 +970,7 @@ function showEmployeeDashboard() {
     }
 }
 
-// Manager Functions - Live Employee Monitoring
+// FIXED: Live Employee Monitor with proper status tracking
 async function loadLiveEmployeeMonitor() {
     const container = document.getElementById('liveEmployeeMonitor');
     if (!container || !hasManagerAccess()) return;
@@ -983,7 +983,7 @@ async function loadLiveEmployeeMonitor() {
             .from('employees')
             .select(`
                 id, name, department, role,
-                attendance!left(status, check_in, check_out, break_time, total_hours),
+                attendance!left(status, check_in, check_out, break_time, total_hours, is_on_break),
                 login_sessions!left(login_time, logout_time, is_active, device_info)
             `)
             .eq('attendance.date', today)
@@ -998,16 +998,23 @@ async function loadLiveEmployeeMonitor() {
             <div style="display: grid; gap: 16px; max-height: 500px; overflow-y: auto;">
                 ${employees.map(emp => {
                     const attendance = emp.attendance && emp.attendance.length > 0 ? emp.attendance[0] : null;
-                    const loginSession = emp.login_sessions && emp.login_sessions.length > 0 ? 
-                        emp.login_sessions.find(s => s.is_active) || emp.login_sessions[0] : null;
+                    const activeSessions = emp.login_sessions?.filter(s => s.is_active) || [];
+                    const loginSession = activeSessions.length > 0 ? activeSessions[0] : null;
                     
-                    const isOnline = loginSession && loginSession.is_active;
+                    // FIXED: Only show online if there's an active login session
+                    const isOnline = loginSession !== null;
                     const isPresent = attendance && attendance.status === 'present';
+                    const isOnBreak = attendance && attendance.is_on_break;
                     const checkInTime = attendance ? attendance.check_in : null;
                     const workingHours = attendance ? attendance.total_hours || 0 : 0;
                     const breakTime = attendance ? attendance.break_time || 0 : 0;
                     
-                    // Determine shift compliance
+                    // FIXED: Convert decimal hours to hours and minutes
+                    const workHours = Math.floor(workingHours);
+                    const workMinutes = Math.round((workingHours - workHours) * 60);
+                    const workDisplay = `${workHours}h ${workMinutes}m`;
+                    
+                    // FIXED: Determine shift compliance
                     let shiftStatus = 'On Time';
                     let shiftStatusColor = '#48bb78';
                     
@@ -1020,6 +1027,32 @@ async function loadLiveEmployeeMonitor() {
                             shiftStatus = `Late by ${lateMinutes}m`;
                             shiftStatusColor = '#e53e3e';
                         }
+                    } else if (isOnline && !isPresent) {
+                        shiftStatus = 'Online but not checked in';
+                        shiftStatusColor = '#ed8936';
+                    } else if (!isOnline && !isPresent) {
+                        shiftStatus = 'Offline';
+                        shiftStatusColor = '#718096';
+                    }
+                    
+                    // FIXED: Determine current activity status
+                    let activityStatus = 'Offline';
+                    let activityColor = '#e53e3e';
+                    
+                    if (isOnline && isPresent) {
+                        if (isOnBreak) {
+                            activityStatus = '☕ On Break';
+                            activityColor = '#ed8936';
+                        } else {
+                            activityStatus = '💼 Working';
+                            activityColor = '#48bb78';
+                        }
+                    } else if (isOnline && !isPresent) {
+                        activityStatus = '💻 Online Only';
+                        activityColor = '#4299e1';
+                    } else if (!isOnline && isPresent) {
+                        activityStatus = '📱 Present Offline';
+                        activityColor = '#9f7aea';
                     }
                     
                     return `
@@ -1033,6 +1066,7 @@ async function loadLiveEmployeeMonitor() {
                                         <span class="present-indicator ${isPresent ? 'active' : 'inactive'}" title="${isPresent ? 'Present' : 'Absent'}">
                                             ${isPresent ? '💼' : '🏠'}
                                         </span>
+                                        ${isOnBreak ? '<span title="On Break">☕</span>' : ''}
                                     </div>
                                     <div>
                                         <h4 style="margin: 0; color: #2d3748; font-size: 16px;">${emp.name}</h4>
@@ -1063,7 +1097,7 @@ async function loadLiveEmployeeMonitor() {
                                     
                                     <div class="detail-item">
                                         <span class="detail-label">Work Hours</span>
-                                        <span class="detail-value">${workingHours.toFixed(1)}h</span>
+                                        <span class="detail-value">${workDisplay}</span>
                                     </div>
                                     
                                     <div class="detail-item">
@@ -1080,10 +1114,8 @@ async function loadLiveEmployeeMonitor() {
                                     
                                     <div class="detail-item">
                                         <span class="detail-label">Status</span>
-                                        <span class="detail-value">
-                                            ${isOnline && isPresent ? '🔥 Active' : 
-                                              isOnline ? '💻 Online' : 
-                                              isPresent ? '💼 Present' : '⭕ Offline'}
+                                        <span class="detail-value" style="color: ${activityColor}; font-weight: 600;">
+                                            ${activityStatus}
                                         </span>
                                     </div>
                                 </div>
@@ -1932,12 +1964,70 @@ async function loadMySchedule() {
     }
 }
 
+// UPDATED: Use existing leave_balance table from Supabase
+async function loadLeaveBalance(employeeId) {
+    try {
+        const currentYear = new Date().getFullYear();
+        
+        // Get leave balance from dedicated leave_balance table
+        const { data: leaveBalance } = await supabase
+            .from('leave_balance')
+            .select('casual, sick, earned, emergency')
+            .eq('employee_id', employeeId)
+            .eq('year', currentYear)
+            .single();
+        
+        if (leaveBalance) {
+            return {
+                casual: leaveBalance.casual || 0,
+                sick: leaveBalance.sick || 0,
+                earned: leaveBalance.earned || 0,
+                emergency: leaveBalance.emergency || 0
+            };
+        } else {
+            // If no record exists for current year, create default balance
+            const defaultBalance = { casual: 12, sick: 7, earned: 21, emergency: 3 };
+            
+            const { data: newBalance, error } = await supabase
+                .from('leave_balance')
+                .insert({
+                    employee_id: employeeId,
+                    year: currentYear,
+                    ...defaultBalance
+                })
+                .select()
+                .single();
+
+            if (error) {
+                console.error('Error creating leave balance:', error);
+                return defaultBalance;
+            }
+            
+            return {
+                casual: newBalance.casual,
+                sick: newBalance.sick, 
+                earned: newBalance.earned,
+                emergency: newBalance.emergency
+            };
+        }
+        
+    } catch (error) {
+        console.error('Error loading leave balance:', error);
+        // Return default values if error
+        return { casual: 12, sick: 7, earned: 21, emergency: 3 };
+    }
+}
+
+// UPDATED: Live Leave Management using existing leave_balance table
 async function loadLeaveManagement() {
     const container = document.getElementById('leaveRequestsList');
     
     if (!container) return;
     
     try {
+        // Get live leave balance from dedicated table
+        const leaveBalance = await loadLeaveBalance(currentUser.id);
+        
         let query = supabase.from('leave_requests').select(`
             *,
             employee:employees!leave_requests_employee_id_fkey(name)
@@ -1949,54 +2039,95 @@ async function loadLeaveManagement() {
         
         const { data: leaveRequests } = await query.order('created_at', { ascending: false });
 
-        // Always show leave balance section
+        // UPDATED: Live leave balance section using database data
         const leaveBalanceSection = `
             <div class="card">
-                <h3>📊 Live Leave Balance</h3>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
-                    <div style="text-align: center; padding: 15px; background: #e6fffa; border-radius: 8px;">
-                        <div style="font-size: 24px; font-weight: bold; color: #48bb78;">12</div>
-                        <div style="font-size: 12px; color: #666;">Casual Leave</div>
+                <h3>📊 Live Leave Balance (Real-time from Database)</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                    <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #e6fffa 0%, #ffffff 100%); border-radius: 8px; border: 2px solid #48bb78;">
+                        <div style="font-size: 32px; font-weight: bold; color: #48bb78; margin-bottom: 8px;">${leaveBalance.casual}</div>
+                        <div style="font-size: 12px; color: #666; font-weight: 600;">Casual Leave</div>
+                        <div style="font-size: 10px; color: #48bb78; margin-top: 4px;">⚡ Live from DB</div>
                     </div>
-                    <div style="text-align: center; padding: 15px; background: #e6fffa; border-radius: 8px;">
-                        <div style="font-size: 24px; font-weight: bold; color: #4299e1;">7</div>
-                        <div style="font-size: 12px; color: #666;">Sick Leave</div>
+                    <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #f0f9ff 0%, #ffffff 100%); border-radius: 8px; border: 2px solid #4299e1;">
+                        <div style="font-size: 32px; font-weight: bold; color: #4299e1; margin-bottom: 8px;">${leaveBalance.sick}</div>
+                        <div style="font-size: 12px; color: #666; font-weight: 600;">Sick Leave</div>
+                        <div style="font-size: 10px; color: #4299e1; margin-top: 4px;">⚡ Live from DB</div>
                     </div>
-                    <div style="text-align: center; padding: 15px; background: #e6fffa; border-radius: 8px;">
-                        <div style="font-size: 24px; font-weight: bold; color: #ed8936;">21</div>
-                        <div style="font-size: 12px; color: #666;">Earned Leave</div>
+                    <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #fef5e7 0%, #ffffff 100%); border-radius: 8px; border: 2px solid #ed8936;">
+                        <div style="font-size: 32px; font-weight: bold; color: #ed8936; margin-bottom: 8px;">${leaveBalance.earned}</div>
+                        <div style="font-size: 12px; color: #666; font-weight: 600;">Earned Leave</div>
+                        <div style="font-size: 10px; color: #ed8936; margin-top: 4px;">⚡ Live from DB</div>
+                    </div>
+                    <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%); border-radius: 8px; border: 2px solid #e53e3e;">
+                        <div style="font-size: 32px; font-weight: bold; color: #e53e3e; margin-bottom: 8px;">${leaveBalance.emergency}</div>
+                        <div style="font-size: 12px; color: #666; font-weight: 600;">Emergency</div>
+                        <div style="font-size: 10px; color: #e53e3e; margin-top: 4px;">⚡ Live from DB</div>
                     </div>
                 </div>
             </div>
         `;
 
-        // Leave requests section
+        // Leave requests section with proper zero state
+        const totalRequests = leaveRequests?.length || 0;
+        const pendingRequests = leaveRequests?.filter(req => req.status === 'pending').length || 0;
+        const approvedRequests = leaveRequests?.filter(req => req.status === 'approved').length || 0;
+        const rejectedRequests = leaveRequests?.filter(req => req.status === 'rejected').length || 0;
+
         const requestsSection = `
             <div class="card">
                 <h3>📝 ${hasManagerAccess() ? 'All Leave Requests (Live Manager View)' : 'My Leave Requests'}</h3>
-                ${!leaveRequests || leaveRequests.length === 0 ? 
+                
+                ${totalRequests === 0 ? 
                     `<div style="text-align: center; padding: 40px; color: #666;">
-                        <div style="font-size: 48px; margin-bottom: 16px;">🏖️</div>
-                        <h4>No Leave Requests</h4>
-                        <p>${hasManagerAccess() ? 'No employee leave requests found' : 'You have not applied for any leave yet'}</p>
-                        <div style="font-size: 24px; font-weight: bold; color: #4299e1; margin-top: 16px;">0 Requests</div>
+                        <div style="font-size: 64px; margin-bottom: 20px;">🏖️</div>
+                        <h3 style="color: #4a5568; margin-bottom: 12px;">No Leave Requests Found</h3>
+                        <p style="color: #718096; margin-bottom: 20px;">
+                            ${hasManagerAccess() ? 'No employee leave requests in the system yet' : 'You haven\'t applied for any leave yet'}
+                        </p>
+                        <div style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #e6fffa 0%, #ffffff 100%); border-radius: 12px; border: 2px solid #48bb78;">
+                            <div style="font-size: 28px; font-weight: bold; color: #48bb78;">0</div>
+                            <div style="font-size: 12px; color: #666; font-weight: 600;">Total Requests</div>
+                        </div>
                     </div>` : 
-                    `<div style="margin-bottom: 15px; padding: 10px; background: #e6fffa; border-radius: 8px; text-align: center;">
-                        <strong>📊 Total Requests: ${leaveRequests.length}</strong>
+                    
+                    `<div style="margin-bottom: 20px;">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 15px;">
+                            <div style="text-align: center; padding: 12px; background: #e6fffa; border-radius: 8px; border-left: 4px solid #48bb78;">
+                                <div style="font-size: 20px; font-weight: bold; color: #48bb78;">${totalRequests}</div>
+                                <div style="font-size: 11px; color: #666;">Total</div>
+                            </div>
+                            <div style="text-align: center; padding: 12px; background: #fef5e7; border-radius: 8px; border-left: 4px solid #ed8936;">
+                                <div style="font-size: 20px; font-weight: bold; color: #ed8936;">${pendingRequests}</div>
+                                <div style="font-size: 11px; color: #666;">Pending</div>
+                            </div>
+                            <div style="text-align: center; padding: 12px; background: #e6fffa; border-radius: 8px; border-left: 4px solid #48bb78;">
+                                <div style="font-size: 20px; font-weight: bold; color: #48bb78;">${approvedRequests}</div>
+                                <div style="font-size: 11px; color: #666;">Approved</div>
+                            </div>
+                            <div style="text-align: center; padding: 12px; background: #fed7d7; border-radius: 8px; border-left: 4px solid #e53e3e;">
+                                <div style="font-size: 20px; font-weight: bold; color: #e53e3e;">${rejectedRequests}</div>
+                                <div style="font-size: 11px; color: #666;">Rejected</div>
+                            </div>
+                        </div>
                     </div>` +
+                    
                     leaveRequests.map(request => `
-                        <div class="task-item">
+                        <div class="task-item" style="border-left: 4px solid ${getLeaveStatusBorderColor(request.status)};">
                             <div class="task-header">
                                 <div>
                                     <div class="task-title">🚀 ${request.leave_type.charAt(0).toUpperCase() + request.leave_type.slice(1)} Leave</div>
-                                    <p>${hasManagerAccess() ? `👤 Employee: ${request.employee?.name || 'Unknown'} | ` : ''}${new Date(request.from_date).toLocaleDateString()} - ${new Date(request.to_date).toLocaleDateString()}</p>
+                                    <p style="color: #718096; font-size: 13px; margin: 4px 0;">
+                                        ${hasManagerAccess() ? `👤 Employee: ${request.employee?.name || 'Unknown'} | ` : ''}
+                                        📅 ${new Date(request.from_date).toLocaleDateString()} - ${new Date(request.to_date).toLocaleDateString()}
+                                    </p>
                                 </div>
                                 <span class="status-badge ${getLeaveStatusClass(request.status)}">${getLeaveStatusIcon(request.status)} ${request.status.charAt(0).toUpperCase() + request.status.slice(1)}</span>
                             </div>
-                            <p>${request.reason}</p>
+                            <p style="color: #4a5568; font-size: 14px; margin: 8px 0;">${request.reason}</p>
                             <div class="task-meta">
-                                <span>Applied: ${new Date(request.created_at).toLocaleDateString()}</span>
-                                <span>${request.days || calculateLeaveDays(request.from_date, request.to_date)} days</span>
+                                <span style="color: #718096;">Applied: ${new Date(request.created_at).toLocaleDateString()}</span>
+                                <span style="color: #4a5568; font-weight: 600;">${request.days || calculateLeaveDays(request.from_date, request.to_date)} days</span>
                                 ${hasManagerAccess() && request.status === 'pending' ? `
                                     <button class="btn-small btn-success" onclick="approveLeave('${request.id}')">✅ Approve</button>
                                     <button class="btn-small btn-danger" onclick="rejectLeave('${request.id}')">❌ Reject</button>
@@ -2012,8 +2143,7 @@ async function loadLeaveManagement() {
         
         // Update pending leaves stat for managers
         if (hasManagerAccess()) {
-            const pendingCount = leaveRequests?.filter(req => req.status === 'pending').length || 0;
-            updateStatCard('pendingLeaves', pendingCount);
+            updateStatCard('pendingLeaves', pendingRequests);
         }
         
     } catch (error) {
@@ -2021,11 +2151,21 @@ async function loadLeaveManagement() {
         container.innerHTML = `
             <div class="card">
                 <div style="color: #e53e3e; text-align: center; padding: 40px;">
-                    <h3>Error Loading Leave Data</h3>
-                    <p>Unable to connect to live system</p>
+                    <h3>❌ Error Loading Leave Data</h3>
+                    <p>Unable to connect to live system. Please refresh the page.</p>
                 </div>
             </div>
         `;
+    }
+}
+
+// Helper function for leave status border colors
+function getLeaveStatusBorderColor(status) {
+    switch(status) {
+        case 'approved': return '#48bb78';
+        case 'rejected': return '#e53e3e';
+        case 'pending': return '#ed8936';
+        default: return '#e2e8f0';
     }
 }
 
