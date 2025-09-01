@@ -1096,79 +1096,68 @@ function selectShift(shiftType) {
     showNotification(`Selected ${shiftType} shift! 🎯`, 'success', 2000);
 }
 
+// FINAL COMPLETE FIX: Smart Schedule with Simple Insert (No Database Constraints Issues)
 async function handleSmartSchedule(e) {
     e.preventDefault();
     
     if (!hasManagerAccess()) {
-        showNotification('Only admin/manager can create schedules! ⚠️', 'error');
+        showNotification('Only admin/manager can create schedules!', 'error');
         return;
     }
     
     const selectedShift = document.getElementById('selectedShift').value;
-    if (!selectedShift) {
-        showNotification('Please select a shift timing! ⚠️', 'error');
-        return;
-    }
-    
-    // FIXED: Ensure valid shift values for database
-    const validShifts = ['morning', 'evening', 'night', 'off'];
-    if (!validShifts.includes(selectedShift)) {
-        showNotification('Invalid shift type selected! Please select a valid shift. ⚠️', 'error');
-        return;
-    }
-    
     const employeeId = document.getElementById('smartEmployee').value;
     const scheduleDate = document.getElementById('smartDate').value;
     
-    if (!employeeId || !scheduleDate) {
-        showNotification('Please select employee and date! ⚠️', 'error');
+    if (!selectedShift || !employeeId || !scheduleDate) {
+        showNotification('Please fill all required fields!', 'error');
         return;
     }
     
-    const scheduleData = {
-        employee_id: employeeId,
-        date: scheduleDate,
-        shift: selectedShift.toLowerCase(), // Ensure lowercase for database
-        location: document.getElementById('smartLocation').value || 'office',
-        notes: document.getElementById('smartNotes').value || `${selectedShift} shift schedule`,
-        created_by: currentUser.id
-    };
-    
     try {
-        console.log('Creating smart schedule with data:', scheduleData);
+        console.log('Creating schedule...', { employeeId, scheduleDate, selectedShift });
         
-        // FIXED: Use upsert for handling existing records
+        // Simple direct insert approach
+        const scheduleData = {
+            employee_id: employeeId,
+            date: scheduleDate,
+            shift: selectedShift,
+            location: document.getElementById('smartLocation').value || 'office',
+            notes: document.getElementById('smartNotes').value || 'Scheduled via Smart Scheduler',
+            created_by: currentUser.id
+        };
+        
+        // First try to delete existing record for this employee and date
+        await supabase
+            .from('roster')
+            .delete()
+            .eq('employee_id', employeeId)
+            .eq('date', scheduleDate);
+        
+        // Then insert new record
         const { data, error } = await supabase
             .from('roster')
-            .upsert([scheduleData], {
-                onConflict: 'employee_id,date'
-            })
+            .insert(scheduleData)
             .select();
-
+        
         if (error) {
-            console.error('Smart schedule database error:', error);
-            throw new Error(error.message || 'Database error occurred');
+            console.error('Schedule insert error:', error);
+            throw new Error('Failed to create schedule. Please try again.');
         }
         
-        console.log('Smart schedule created successfully:', data);
-        showNotification(`Smart schedule created successfully! ${selectedShift} shift assigned 🎯🚀`, 'success');
+        console.log('Schedule created:', data);
+        showNotification('Schedule created successfully!', 'success');
+        
         closeModal('smartSchedulerModal');
         e.target.reset();
-        
-        // Reset shift selection UI
         document.querySelectorAll('.shift-card').forEach(card => {
             card.classList.remove('selected');
         });
         document.getElementById('selectedShift').value = '';
         
-        // Reload roster data if on roster tab
-        if (document.getElementById('tab-rosterManagement').classList.contains('active')) {
-            loadRosterData();
-        }
-        
     } catch (error) {
-        console.error('Create smart schedule error:', error);
-        showNotification(`Failed to create schedule: ${error.message} ❌`, 'error');
+        console.error('Schedule error:', error);
+        showNotification('Schedule creation failed. Please try again.', 'error');
     }
 }
 
@@ -1991,59 +1980,8 @@ async function loadLeaveManagement() {
     }
 }
 
-// UPDATED: Use existing leave_balance table from Supabase
-async function loadLeaveBalance(employeeId) {
-    try {
-        const currentYear = new Date().getFullYear();
-        
-        // Get leave balance from dedicated leave_balance table
-        const { data: leaveBalance } = await supabase
-            .from('leave_balance')
-            .select('casual, sick, earned, emergency')
-            .eq('employee_id', employeeId)
-            .eq('year', currentYear)
-            .single();
-        
-        if (leaveBalance) {
-            return {
-                casual: leaveBalance.casual || 0,
-                sick: leaveBalance.sick || 0,
-                earned: leaveBalance.earned || 0,
-                emergency: leaveBalance.emergency || 0
-            };
-        } else {
-            // If no record exists for current year, create default balance
-            const defaultBalance = { casual: 12, sick: 7, earned: 21, emergency: 3 };
-            
-            const { data: newBalance, error } = await supabase
-                .from('leave_balance')
-                .insert({
-                    employee_id: employeeId,
-                    year: currentYear,
-                    ...defaultBalance
-                })
-                .select()
-                .single();
-
-            if (error) {
-                console.error('Error creating leave balance:', error);
-                return defaultBalance;
-            }
-            
-            return {
-                casual: newBalance.casual,
-                sick: newBalance.sick, 
-                earned: newBalance.earned,
-                emergency: newBalance.emergency
-            };
-        }
-        
-    } catch (error) {
-        console.error('Error loading leave balance:', error);
-        // Return default values if error
-        return { casual: 12, sick: 7, earned: 21, emergency: 3 };
-    }
-}
+// UPDATED: Remove loadLeaveBalance function completely - not needed
+// async function loadLeaveBalance(employeeId) - REMOVED COMPLETELY
 
 // Helper function for leave status border colors
 function getLeaveStatusBorderColor(status) {
