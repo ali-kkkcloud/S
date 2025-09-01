@@ -1756,7 +1756,7 @@ async function loadMySchedule() {
     }
 }
 
-// UPDATED: Leave Management with removed Live Leave Balance for Manager
+// FIXED: Leave Management - Manager: Only Leave Requests, Employee: Leave Balance + Requests
 async function loadLeaveManagement() {
     const container = document.getElementById('leaveRequestsList');
     
@@ -1768,38 +1768,102 @@ async function loadLeaveManagement() {
             employee:employees!leave_requests_employee_id_fkey(name)
         `);
         
+        // FIXED: Only show leave balance for employees
+        let leaveBalanceSection = '';
         if (!hasManagerAccess()) {
             query = query.eq('employee_id', currentUser.id);
             
-            // FIXED: Show Live Leave Balance for Employee only
-            const leaveBalance = await loadLeaveBalance(currentUser.id);
-            const leaveBalanceSection = `
-                <div class="card">
-                    <h3>📊 My Live Leave Balance (Real-time from Database)</h3>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; margin-bottom: 20px;">
-                        <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #e6fffa 0%, #ffffff 100%); border-radius: 8px; border: 2px solid #48bb78;">
-                            <div style="font-size: 32px; font-weight: bold; color: #48bb78; margin-bottom: 8px;">${leaveBalance.casual}</div>
-                            <div style="font-size: 12px; color: #666; font-weight: 600;">Casual Leave</div>
-                            <div style="font-size: 10px; color: #48bb78; margin-top: 4px;">⚡ Live from DB</div>
+            // FIXED: Only load leave balance for real employees, not demo users
+            if (!currentUser.id.startsWith('demo_')) {
+                try {
+                    const leaveBalance = await loadLeaveBalance(currentUser.id);
+                    leaveBalanceSection = `
+                        <div class="card">
+                            <h3>📊 My Live Leave Balance (Real-time from Database)</h3>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                                <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #e6fffa 0%, #ffffff 100%); border-radius: 8px; border: 2px solid #48bb78;">
+                                    <div style="font-size: 32px; font-weight: bold; color: #48bb78; margin-bottom: 8px;">${leaveBalance.casual}</div>
+                                    <div style="font-size: 12px; color: #666; font-weight: 600;">Casual Leave</div>
+                                    <div style="font-size: 10px; color: #48bb78; margin-top: 4px;">⚡ Live from DB</div>
+                                </div>
+                                <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #f0f9ff 0%, #ffffff 100%); border-radius: 8px; border: 2px solid #4299e1;">
+                                    <div style="font-size: 32px; font-weight: bold; color: #4299e1; margin-bottom: 8px;">${leaveBalance.sick}</div>
+                                    <div style="font-size: 12px; color: #666; font-weight: 600;">Sick Leave</div>
+                                    <div style="font-size: 10px; color: #4299e1; margin-top: 4px;">⚡ Live from DB</div>
+                                </div>
+                                <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #fef5e7 0%, #ffffff 100%); border-radius: 8px; border: 2px solid #ed8936;">
+                                    <div style="font-size: 32px; font-weight: bold; color: #ed8936; margin-bottom: 8px;">${leaveBalance.earned}</div>
+                                    <div style="font-size: 12px; color: #666; font-weight: 600;">Earned Leave</div>
+                                    <div style="font-size: 10px; color: #ed8936; margin-top: 4px;">⚡ Live from DB</div>
+                                </div>
+                                <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%); border-radius: 8px; border: 2px solid #e53e3e;">
+                                    <div style="font-size: 32px; font-weight: bold; color: #e53e3e; margin-bottom: 8px;">${leaveBalance.emergency}</div>
+                                    <div style="font-size: 12px; color: #666; font-weight: 600;">Emergency</div>
+                                    <div style="font-size: 10px; color: #e53e3e; margin-top: 4px;">⚡ Live from DB</div>
+                                </div>
+                            </div>
                         </div>
-                        <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #f0f9ff 0%, #ffffff 100%); border-radius: 8px; border: 2px solid #4299e1;">
-                            <div style="font-size: 32px; font-weight: bold; color: #4299e1; margin-bottom: 8px;">${leaveBalance.sick}</div>
-                            <div style="font-size: 12px; color: #666; font-weight: 600;">Sick Leave</div>
-                            <div style="font-size: 10px; color: #4299e1; margin-top: 4px;">⚡ Live from DB</div>
+                    `;
+                } catch (balanceError) {
+                    console.log('Could not load leave balance (demo user):', balanceError);
+                    leaveBalanceSection = `
+                        <div class="card">
+                            <h3>📊 Demo Leave Balance</h3>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                                <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #e6fffa 0%, #ffffff 100%); border-radius: 8px; border: 2px solid #48bb78;">
+                                    <div style="font-size: 32px; font-weight: bold; color: #48bb78; margin-bottom: 8px;">12</div>
+                                    <div style="font-size: 12px; color: #666; font-weight: 600;">Casual Leave</div>
+                                    <div style="font-size: 10px; color: #48bb78; margin-top: 4px;">⚡ Demo Data</div>
+                                </div>
+                                <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #f0f9ff 0%, #ffffff 100%); border-radius: 8px; border: 2px solid #4299e1;">
+                                    <div style="font-size: 32px; font-weight: bold; color: #4299e1; margin-bottom: 8px;">7</div>
+                                    <div style="font-size: 12px; color: #666; font-weight: 600;">Sick Leave</div>
+                                    <div style="font-size: 10px; color: #4299e1; margin-top: 4px;">⚡ Demo Data</div>
+                                </div>
+                                <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #fef5e7 0%, #ffffff 100%); border-radius: 8px; border: 2px solid #ed8936;">
+                                    <div style="font-size: 32px; font-weight: bold; color: #ed8936; margin-bottom: 8px;">21</div>
+                                    <div style="font-size: 12px; color: #666; font-weight: 600;">Earned Leave</div>
+                                    <div style="font-size: 10px; color: #ed8936; margin-top: 4px;">⚡ Demo Data</div>
+                                </div>
+                                <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%); border-radius: 8px; border: 2px solid #e53e3e;">
+                                    <div style="font-size: 32px; font-weight: bold; color: #e53e3e; margin-bottom: 8px;">3</div>
+                                    <div style="font-size: 12px; color: #666; font-weight: 600;">Emergency</div>
+                                    <div style="font-size: 10px; color: #e53e3e; margin-top: 4px;">⚡ Demo Data</div>
+                                </div>
+                            </div>
                         </div>
-                        <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #fef5e7 0%, #ffffff 100%); border-radius: 8px; border: 2px solid #ed8936;">
-                            <div style="font-size: 32px; font-weight: bold; color: #ed8936; margin-bottom: 8px;">${leaveBalance.earned}</div>
-                            <div style="font-size: 12px; color: #666; font-weight: 600;">Earned Leave</div>
-                            <div style="font-size: 10px; color: #ed8936; margin-top: 4px;">⚡ Live from DB</div>
-                        </div>
-                        <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%); border-radius: 8px; border: 2px solid #e53e3e;">
-                            <div style="font-size: 32px; font-weight: bold; color: #e53e3e; margin-bottom: 8px;">${leaveBalance.emergency}</div>
-                            <div style="font-size: 12px; color: #666; font-weight: 600;">Emergency</div>
-                            <div style="font-size: 10px; color: #e53e3e; margin-top: 4px;">⚡ Live from DB</div>
+                    `;
+                }
+            } else {
+                // Demo user fallback
+                leaveBalanceSection = `
+                    <div class="card">
+                        <h3>📊 Demo Leave Balance</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                            <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #e6fffa 0%, #ffffff 100%); border-radius: 8px; border: 2px solid #48bb78;">
+                                <div style="font-size: 32px; font-weight: bold; color: #48bb78; margin-bottom: 8px;">12</div>
+                                <div style="font-size: 12px; color: #666; font-weight: 600;">Casual Leave</div>
+                                <div style="font-size: 10px; color: #48bb78; margin-top: 4px;">⚡ Demo Data</div>
+                            </div>
+                            <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #f0f9ff 0%, #ffffff 100%); border-radius: 8px; border: 2px solid #4299e1;">
+                                <div style="font-size: 32px; font-weight: bold; color: #4299e1; margin-bottom: 8px;">7</div>
+                                <div style="font-size: 12px; color: #666; font-weight: 600;">Sick Leave</div>
+                                <div style="font-size: 10px; color: #4299e1; margin-top: 4px;">⚡ Demo Data</div>
+                            </div>
+                            <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #fef5e7 0%, #ffffff 100%); border-radius: 8px; border: 2px solid #ed8936;">
+                                <div style="font-size: 32px; font-weight: bold; color: #ed8936; margin-bottom: 8px;">21</div>
+                                <div style="font-size: 12px; color: #666; font-weight: 600;">Earned Leave</div>
+                                <div style="font-size: 10px; color: #ed8936; margin-top: 4px;">⚡ Demo Data</div>
+                            </div>
+                            <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%); border-radius: 8px; border: 2px solid #e53e3e;">
+                                <div style="font-size: 32px; font-weight: bold; color: #e53e3e; margin-bottom: 8px;">3</div>
+                                <div style="font-size: 12px; color: #666; font-weight: 600;">Emergency</div>
+                                <div style="font-size: 10px; color: #e53e3e; margin-top: 4px;">⚡ Demo Data</div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            `;
+                `;
+            }
         }
         
         const { data: leaveRequests } = await query.order('created_at', { ascending: false });
@@ -1878,12 +1942,12 @@ async function loadLeaveManagement() {
             </div>
         `;
 
-        // FIXED: For Employee show Leave Balance + Requests, for Manager show only Requests
+        // COMPLETELY FIXED: Manager shows ONLY requests, Employee shows balance + requests
         if (hasManagerAccess()) {
-            container.innerHTML = requestsSection;
+            container.innerHTML = requestsSection; // ONLY requests for manager
             updateStatCard('pendingLeaves', pendingRequests);
         } else {
-            container.innerHTML = leaveBalanceSection + requestsSection;
+            container.innerHTML = leaveBalanceSection + requestsSection; // Balance + requests for employee
         }
         
     } catch (error) {
