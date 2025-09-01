@@ -132,100 +132,215 @@ function showDashboard() {
     document.getElementById('dashboard').classList.add('show');
 }
 
-// LOGIN ACTIVITY TRACKING SYSTEM
-function recordLogin(user) {
-    const loginRecord = {
-        id: generateId(),
-        userId: user.id,
-        userName: user.name,
-        userEmail: user.email,
-        userRole: user.role,
-        userDepartment: user.department,
-        loginTime: new Date().toISOString(),
-        logoutTime: null,
-        sessionDuration: null,
-        status: 'online',
-        device: getDeviceInfo(),
-        browser: getBrowserInfo(),
-        location: 'Unknown' // Could be enhanced with IP geolocation
-    };
-    
-    // Remove any existing session for this user (in case of browser refresh)
-    loginActivityData = loginActivityData.filter(record => 
-        record.userId !== user.id || record.status === 'offline'
-    );
-    
-    loginActivityData.unshift(loginRecord);
-    onlineUsers.add(user.id);
-    
-    // Keep only last 1000 records
-    if (loginActivityData.length > 1000) {
-        loginActivityData = loginActivityData.slice(0, 1000);
-    }
-    
-    saveLoginActivity();
-    updateLoginStats();
-    
-    console.log('📊 Login recorded:', loginRecord);
-}
+// SUPABASE LOGIN ACTIVITY TRACKING SYSTEM
+async function recordLogin(user) {
+    try {
+        const { data, error } = await supabase
+            .from('login_sessions')
+            .insert({
+                employee_id: user.id,
+                login_time: new Date().toISOString(),
+                device_info: getDeviceInfo(),
+                browser_info: getBrowserInfo(),
+                is_active: true
+            })
+            .select();
 
-function recordLogout(user) {
-    const activeSession = loginActivityData.find(record => 
-        record.userId === user.id && record.status === 'online'
-    );
-    
-    if (activeSession) {
-        const logoutTime = new Date();
-        const loginTime = new Date(activeSession.loginTime);
-        const sessionDuration = calculateSessionDuration(loginTime, logoutTime);
+        if (error) throw error;
         
-        activeSession.logoutTime = logoutTime.toISOString();
-        activeSession.sessionDuration = sessionDuration;
-        activeSession.status = 'offline';
+        if (data && data[0]) {
+            localStorage.setItem('currentSessionId', data[0].id);
+            console.log('📊 Login recorded in Supabase:', data[0]);
+        }
         
-        onlineUsers.delete(user.id);
-        
-        saveLoginActivity();
-        updateLoginStats();
-        
-        console.log('📊 Logout recorded:', activeSession);
+    } catch (error) {
+        console.error('Error recording login:', error);
     }
 }
 
-function saveLoginActivity() {
-    localStorage.setItem('loginActivity', JSON.stringify(loginActivityData));
+async function recordLogout(user) {
+    try {
+        const sessionId = localStorage.getItem('currentSessionId');
+        if (!sessionId) return;
+
+        const logoutTime = new Date().toISOString();
+        
+        // Calculate session duration
+        const { data: session } = await supabase
+            .from('login_sessions')
+            .select('login_time')
+            .eq('id', sessionId)
+            .single();
+
+        let sessionDuration = 0;
+        if (session) {
+            const loginTime = new Date(session.login_time);
+            const logoutTimeDate = new Date(logoutTime);
+            sessionDuration = Math.round((logoutTimeDate - loginTime) / (1000 * 60)); // minutes
+        }
+
+        const { error } = await supabase
+            .from('login_sessions')
+            .update({
+                logout_time: logoutTime,
+                session_duration: sessionDuration,
+                is_active: false
+            })
+            .eq('id', sessionId);
+
+        if (error) throw error;
+
+        localStorage.removeItem('currentSessionId');
+        console.log('📊 Logout recorded in Supabase');
+        
+    } catch (error) {
+        console.error('Error recording logout:', error);
+    }
 }
 
-function updateLoginStats() {
-    const today = new Date().toISOString().split('T')[0];
+async function updateLoginStats() {
+    if (!hasManagerAccess()) return;
     
-    const todayLogins = loginActivityData.filter(record => 
-        record.loginTime.startsWith(today)
-    ).length;
-    
-    const currentlyOnline = onlineUsers.size;
-    const totalSessions = loginActivityData.length;
-    
-    // Calculate average session time
-    const completedSessions = loginActivityData.filter(record => 
-        record.sessionDuration !== null
-    );
-    
-    let avgSessionTime = '0h 0m';
-    if (completedSessions.length > 0) {
-        const totalMinutes = completedSessions.reduce((sum, record) => {
-            return sum + record.sessionDuration.totalMinutes;
-        }, 0);
-        const avgMinutes = Math.round(totalMinutes / completedSessions.length);
-        const hours = Math.floor(avgMinutes / 60);
-        const minutes = avgMinutes % 60;
-        avgSessionTime = `${hours}h ${minutes}m`;
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        
+        // Today's logins
+        const { data: todayLogins } = await supabase
+            .from('login_sessions')
+            .select('id')
+            .gte('login_time', today);
+        
+        // Currently online
+        const { data: onlineSessions } = await supabase
+            .from('login_sessions')
+            .select('id')
+            .eq('is_active', true);
+        
+        // Total sessions
+        const { data: totalSessions } = await supabase
+            .from('login_sessions')
+            .select('id');
+        
+        // Average session time
+        const { data: completedSessions } = await supabase
+            .from('login_sessions')
+            .select('session_duration')
+            .not('session_duration', 'is', null);
+        
+        let avgSessionTime = '0h 0m';
+        if (completedSessions && completedSessions.length > 0) {
+            const totalMinutes = completedSessions.reduce((sum, session) => sum + (session.session_duration || 0), 0);
+            const avgMinutes = Math.round(totalMinutes / completedSessions.length);
+            const hours = Math.floor(avgMinutes / 60);
+            const minutes = avgMinutes % 60;
+            avgSessionTime = `${hours}h ${minutes}m`;
+        }
+        
+        updateStatCard('todayLogins', todayLogins?.length || 0);
+        updateStatCard('currentlyOnline', onlineSessions?.length || 0);
+        updateStatCard('totalSessions', totalSessions?.length || 0);
+        updateStatCard('avgSessionTime', avgSessionTime);
+        
+    } catch (error) {
+        console.error('Error updating login stats:', error);
     }
+}
+
+async function loadEmployeeLoginActivity() {
+    if (!hasManagerAccess()) return;
     
-    updateStatCard('todayLogins', todayLogins);
-    updateStatCard('currentlyOnline', currentlyOnline);
-    updateStatCard('totalSessions', totalSessions);
-    updateStatCard('avgSessionTime', avgSessionTime);
+    const container = document.getElementById('employeeLoginActivity');
+    if (!container) return;
+    
+    try {
+        const { data: sessions } = await supabase
+            .from('login_sessions')
+            .select(`
+                id,
+                login_time,
+                logout_time,
+                session_duration,
+                device_info,
+                browser_info,
+                is_active,
+                employee:employees(name, email, role, department)
+            `)
+            .order('login_time', { ascending: false })
+            .limit(20);
+
+        if (!sessions || sessions.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 40px; color: #666;">
+                    <div style="font-size: 48px; margin-bottom: 16px;">🔐</div>
+                    <h3>No Login Activity Yet</h3>
+                    <p>Employee login sessions will appear here in real-time</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = `
+            <div style="display: grid; gap: 12px; max-height: 400px; overflow-y: auto;">
+                ${sessions.map(session => {
+                    const loginTime = new Date(session.login_time);
+                    const timeAgo = getTimeAgo(loginTime);
+                    const isOnline = session.is_active;
+                    const employee = session.employee;
+                    
+                    return `
+                        <div class="employee-login-card ${isOnline ? 'online' : 'offline'}">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div class="status-indicator ${isOnline ? 'online' : 'offline'}">
+                                        ${isOnline ? '🟢' : '🔴'}
+                                    </div>
+                                    <div>
+                                        <div style="font-weight: 600; color: #2d3748;">
+                                            ${employee?.name || 'Unknown'}
+                                        </div>
+                                        <div style="font-size: 12px; color: #718096;">
+                                            ${employee?.department || 'Unknown'} | ${employee?.role || 'Unknown'}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="session-badge ${isOnline ? 'online' : 'offline'}">
+                                    ${isOnline ? 'ONLINE' : 'OFFLINE'}
+                                </div>
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-top: 12px; font-size: 11px;">
+                                <div>
+                                    <div style="color: #4a5568; font-weight: 600;">Login Time</div>
+                                    <div style="color: #2d3748;">${loginTime.toLocaleString()}</div>
+                                    <div style="color: #718096;">${timeAgo}</div>
+                                </div>
+                                
+                                <div>
+                                    <div style="color: #4a5568; font-weight: 600;">Duration</div>
+                                    <div style="color: #2d3748;">
+                                        ${session.session_duration ? 
+                                            `${Math.floor(session.session_duration / 60)}h ${session.session_duration % 60}m` : 
+                                            (isOnline ? 'Active Session' : 'Unknown')
+                                        }
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <div style="color: #4a5568; font-weight: 600;">Device</div>
+                                    <div style="color: #2d3748;">${session.device_info || 'Unknown'}</div>
+                                    <div style="color: #718096;">${session.browser_info || 'Unknown'}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+        
+    } catch (error) {
+        console.error('Error loading employee login activity:', error);
+        container.innerHTML = '<p style="color: #e53e3e; text-align: center;">Error loading login activity</p>';
+    }
 }
 
 function calculateSessionDuration(loginTime, logoutTime) {
@@ -721,7 +836,7 @@ function cleanupRealtimeSubscriptions() {
     updateRealtimeStatus();
 }
 
-// TAB NAVIGATION WITH ROLE-BASED ACCESS
+// TAB NAVIGATION WITH ROLE-BASED ACCESS (FIXED)
 function setupNavigation() {
     const navTabs = document.getElementById('navTabs');
     const hasManagerOrAdmin = hasManagerAccess();
@@ -731,8 +846,8 @@ function setupNavigation() {
         { id: 'employeeManagement', label: '👥 Employees', show: hasManagerOrAdmin },
         { id: 'taskManagement', label: '📋 Tasks', show: hasManagerOrAdmin },
         { id: 'rosterManagement', label: '📅 Schedule', show: true },
-        { id: 'leaveManagement', label: '🏖️ Leave', show: true },
-        { id: 'loginActivity', label: '🔐 Login Activity', show: hasManagerOrAdmin }
+        { id: 'leaveManagement', label: '🏖️ Leave', show: true }
+        // Removed Login Activity tab - now integrated in dashboard
     ];
 
     const visibleTabs = tabs.filter(tab => tab.show);
@@ -803,6 +918,10 @@ function loadTabData(tabId) {
             loadMyTasks();
             loadMySchedule();
             loadAttendance();
+            if (hasManagerAccess()) {
+                loadEmployeeLoginActivity(); // Manager dashboard shows employee login activity
+                updateLoginStats();
+            }
             break;
         case 'employeeManagement':
             if (hasManagerAccess()) {
@@ -819,11 +938,6 @@ function loadTabData(tabId) {
             break;
         case 'leaveManagement':
             loadLeaveManagement();
-            break;
-        case 'loginActivity':
-            if (hasManagerAccess()) {
-                loadLoginActivity();
-            }
             break;
     }
 }
@@ -845,7 +959,20 @@ function loadAllData() {
         loadAdminStats();
         loadLiveAttendance();
         loadEmployeeManagement();
-        loadLoginActivity();
+        loadEmployeeLoginActivity(); // Show employee login activity for managers
+        updateLoginStats(); // Update login statistics
+        
+        // Show the employee login card for managers
+        const loginCard = document.getElementById('employeeLoginCard');
+        if (loginCard) {
+            loginCard.style.display = 'block';
+        }
+    } else {
+        // Hide employee login card for regular employees
+        const loginCard = document.getElementById('employeeLoginCard');
+        if (loginCard) {
+            loginCard.style.display = 'none';
+        }
     }
     
     updateEmployeeDropdowns();
@@ -1553,7 +1680,8 @@ async function loadLeaveManagement() {
         
         const { data: leaveRequests } = await query.order('created_at', { ascending: false });
 
-        container.innerHTML = `
+        // Always show leave balance section
+        const leaveBalanceSection = `
             <div class="card">
                 <h3>📊 Live Leave Balance</h3>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
@@ -1571,11 +1699,22 @@ async function loadLeaveManagement() {
                     </div>
                 </div>
             </div>
-            
+        `;
+
+        // Leave requests section
+        const requestsSection = `
             <div class="card">
                 <h3>📝 ${hasManagerAccess() ? 'All Leave Requests (Live Manager View)' : 'My Leave Requests'}</h3>
                 ${!leaveRequests || leaveRequests.length === 0 ? 
-                    '<p style="text-align: center; color: #666;">No live leave requests yet 🏖️</p>' : 
+                    `<div style="text-align: center; padding: 40px; color: #666;">
+                        <div style="font-size: 48px; margin-bottom: 16px;">🏖️</div>
+                        <h4>No Leave Requests</h4>
+                        <p>${hasManagerAccess() ? 'No employee leave requests found' : 'You have not applied for any leave yet'}</p>
+                        <div style="font-size: 24px; font-weight: bold; color: #4299e1; margin-top: 16px;">0 Requests</div>
+                    </div>` : 
+                    `<div style="margin-bottom: 15px; padding: 10px; background: #e6fffa; border-radius: 8px; text-align: center;">
+                        <strong>📊 Total Requests: ${leaveRequests.length}</strong>
+                    </div>` +
                     leaveRequests.map(request => `
                         <div class="task-item">
                             <div class="task-header">
@@ -1599,7 +1738,10 @@ async function loadLeaveManagement() {
                 }
             </div>
         `;
+
+        container.innerHTML = leaveBalanceSection + requestsSection;
         
+        // Update pending leaves stat for managers
         if (hasManagerAccess()) {
             const pendingCount = leaveRequests?.filter(req => req.status === 'pending').length || 0;
             updateStatCard('pendingLeaves', pendingCount);
@@ -1607,7 +1749,14 @@ async function loadLeaveManagement() {
         
     } catch (error) {
         console.error('Error loading leave management:', error);
-        container.innerHTML = '<p style="color: #e53e3e;">Error loading live leave data</p>';
+        container.innerHTML = `
+            <div class="card">
+                <div style="color: #e53e3e; text-align: center; padding: 40px;">
+                    <h3>Error Loading Leave Data</h3>
+                    <p>Unable to connect to live system</p>
+                </div>
+            </div>
+        `;
     }
 }
 
