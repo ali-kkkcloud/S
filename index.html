@@ -48,7 +48,6 @@
             <div style="margin-top: 20px;">
                 <p style="margin-bottom: 10px; color: #666;">Live Demo Access:</p>
                 <button class="btn btn-demo" onclick="demoLogin('admin')">👨‍💼 Admin (Full Control)</button>
-                <button class="btn btn-demo" onclick="demoLogin('manager')">👨‍🏢 Manager (Full Control)</button>
                 <button class="btn btn-demo" onclick="demoLogin('employee')">👤 Employee (View Schedule)</button>
                 <p style="font-size: 11px; color: #888; margin-top: 10px;">
                     ⚡ Beautiful scheduling, Smart roster management
@@ -164,26 +163,26 @@
                     </div>
                 </div>
 
-                <!-- Manager Dashboard - Employee Monitoring -->
-                <div id="managerDashboard" style="display: none;">
+                <!-- Admin Dashboard - Employee Monitoring -->
+                <div id="adminDashboard" style="display: none;">
                     <h2 style="margin-bottom: 20px; text-align: center; color: #2d3748;">📊 Live Employee Monitoring Dashboard</h2>
                     
-                    <!-- Manager Stats -->
+                    <!-- Admin Stats -->
                     <div class="stats-grid" style="margin-bottom: 30px;">
                         <div class="stat-card">
-                            <div class="stat-number" id="totalEmployeesManager">0</div>
+                            <div class="stat-number" id="totalEmployeesAdmin">0</div>
                             <div class="stat-label">Total Employees</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-number" id="presentTodayManager">0</div>
+                            <div class="stat-number" id="presentTodayAdmin">0</div>
                             <div class="stat-label">Present Today</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-number" id="onlineNowManager">0</div>
+                            <div class="stat-number" id="onlineNowAdmin">0</div>
                             <div class="stat-label">Online Now</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-number" id="avgWorkHoursManager">0h</div>
+                            <div class="stat-number" id="avgWorkHoursAdmin">0h</div>
                             <div class="stat-label">Avg Work Hours</div>
                         </div>
                     </div>
@@ -212,85 +211,6 @@
                 </div>
             </div>
 
-            <!-- Admin Dashboard Tab -->
-            <div id="adminDashboard" class="tab-content">
-                <div class="stats-grid">
-                    <div class="stat-card" id="totalEmployeesCard">
-                        <div class="stat-number" id="totalEmployees">0</div>
-                        <div class="stat-label">Total Employees (Live)</div>
-                    </div>
-                    <div class="stat-card" id="presentTodayCard">
-                        <div class="stat-number" id="presentToday">0</div>
-                        <div class="stat-label">Present Today (Live)</div>
-                    </div>
-                    <div class="stat-card" id="absentTodayCard">
-                        <div class="stat-number" id="absentToday">0</div>
-                        <div class="stat-label">Absent Today (Live)</div>
-                    </div>
-                    <div class="stat-card" id="pendingLeavesCard">
-                        <div class="stat-number" id="pendingLeaves">0</div>
-                        <div class="stat-label">Pending Leaves (Live)</div>
-                    </div>
-                </div>
-
-                <div class="grid">
-                    <!-- Admin Controls -->
-                    <div class="card">
-                        <h2>
-                            <div class="card-icon">⚡</div>
-                            Live Admin Controls
-                        </h2>
-                        <div style="display: grid; gap: 10px;">
-                            <button class="btn btn-info" onclick="openAddEmployeeModal()">➕ Add Employee (Live)</button>
-                            <button class="btn btn-info" onclick="openAddTaskModal()">📝 Assign Live Task</button>
-                            <button class="btn btn-info" onclick="openSmartSchedulerModal()">📅 Smart Schedule Creator</button>
-                            <button class="btn btn-info" onclick="openCustomTimingModal()">⏰ Custom Timings</button>
-                            <button class="btn btn-warning" onclick="triggerSystemUpdate()">🔄 Force Sync All</button>
-                        </div>
-                    </div>
-
-                    <!-- Live Attendance Monitor -->
-                    <div class="card" id="liveAttendanceCard">
-                        <h2>
-                            <div class="card-icon">👥</div>
-                            Live Attendance Monitor
-                        </h2>
-                        <div id="liveAttendance">
-                            <!-- Real-time attendance monitoring -->
-                        </div>
-                    </div>
-
-                    <!-- Employee Login Activity (Manager Only) -->
-                    <div class="card" id="employeeLoginCard" style="display: none;">
-                        <h2>
-                            <div class="card-icon">🔐</div>
-                            Employee Login Activity (Live)
-                        </h2>
-                        <div class="stats-grid" style="margin-bottom: 20px;">
-                            <div class="stat-card">
-                                <div class="stat-number" id="todayLogins">0</div>
-                                <div class="stat-label">Today's Logins</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-number" id="currentlyOnline">0</div>
-                                <div class="stat-label">Currently Online</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-number" id="totalSessions">0</div>
-                                <div class="stat-label">Total Sessions</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-number" id="avgSessionTime">0h 0m</div>
-                                <div class="stat-label">Avg Session Time</div>
-                            </div>
-                        </div>
-                        <div id="employeeLoginActivity">
-                            <!-- Employee login activity will be displayed here -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <!-- Employee Management Tab -->
             <div id="employeeManagement" class="tab-content">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
@@ -313,6 +233,11 @@
                 </div>
             </div>
 
+            <!-- NEW ENHANCED SCHEDULE MANAGEMENT TAB -->
+            <div id="scheduleManagement" class="tab-content">
+                <!-- Schedule content will be dynamically loaded -->
+            </div>
+
             <!-- Leave Management Tab -->
             <div id="leaveManagement" class="tab-content">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
@@ -324,86 +249,9 @@
                 </div>
             </div>
 
-            <!-- Login Activity Tab (Manager/Admin Only) -->
-            <div id="loginActivity" class="tab-content">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
-                    <h2>🔐 Live Login Activity Monitor</h2>
-                    <button class="btn btn-warning" onclick="clearLoginHistory()">🗑️ Clear History</button>
-                </div>
-                <div class="card">
-                    <h3>📊 Live Login Statistics</h3>
-                    <div class="stats-grid" style="margin-bottom: 20px;">
-                        <div class="stat-card">
-                            <div class="stat-number" id="todayLogins">0</div>
-                            <div class="stat-label">Today's Logins</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-number" id="currentlyOnline">0</div>
-                            <div class="stat-label">Currently Online</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-number" id="totalSessions">0</div>
-                            <div class="stat-label">Total Sessions</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-number" id="avgSessionTime">0h 0m</div>
-                            <div class="stat-label">Avg Session Time</div>
-                        </div>
-                    </div>
-                </div>
-                <div id="loginActivityList">
-                    <!-- Live login/logout activity -->
-                </div>
-            </div>
-
-            <!-- Roster Management Tab -->
-            <div id="rosterManagement" class="tab-content">
-                <div class="roster-view">
-                    <div id="adminRosterSection" style="display: none;">
-                        <h2>📅 Smart Roster Management (Admin/Manager)</h2>
-                        
-                        <div class="roster-controls">
-                            <select id="rosterViewType" onchange="changeRosterView()">
-                                <option value="weekly">📅 Weekly View</option>
-                                <option value="monthly">📊 Monthly View</option>
-                            </select>
-                            
-                            <input type="week" id="weekSelector" onchange="loadRosterData()">
-                            <input type="month" id="monthSelector" onchange="loadRosterData()" style="display: none;">
-                            
-                            <button class="btn btn-info" onclick="openSmartSchedulerModal()">🎯 Smart Scheduler</button>
-                            <button class="btn btn-warning" onclick="openBulkSchedulerModal()">📊 Bulk Creator</button>
-                        </div>
-                        
-                        <div id="rosterDisplay">
-                            <!-- Admin roster table will be displayed here -->
-                        </div>
-                    </div>
-
-                    <div id="employeeRosterSection" style="display: none;">
-                        <h2>📅 My Schedule (Employee View)</h2>
-                        <div class="employee-schedule-view">
-                            <div class="schedule-info-card">
-                                <h4>📊 Quick Schedule View</h4>
-                                <p style="color: #666; font-size: 14px;">You can view your schedule but cannot create or modify it. Contact admin for schedule changes.</p>
-                            </div>
-                            
-                            <div class="roster-controls">
-                                <select id="empRosterViewType" onchange="changeEmployeeRosterView()">
-                                    <option value="weekly">📅 My Weekly Schedule</option>
-                                    <option value="monthly">📊 My Monthly Schedule</option>
-                                </select>
-                                
-                                <input type="week" id="empWeekSelector" onchange="loadEmployeeRosterData()">
-                                <input type="month" id="empMonthSelector" onchange="loadEmployeeRosterData()" style="display: none;">
-                            </div>
-                            
-                            <div id="employeeRosterDisplay">
-                                <!-- Employee roster view will be displayed here -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <!-- NEW LOGIN TRACKING TAB (Admin Only) -->
+            <div id="loginTracking" class="tab-content">
+                <!-- Login tracking content will be dynamically loaded -->
             </div>
         </div>
     </div>
@@ -453,7 +301,6 @@
                         <label>👑 Role</label>
                         <select id="empRole">
                             <option value="employee">Employee</option>
-                            <option value="manager">Manager</option>
                             <option value="admin">Admin</option>
                         </select>
                     </div>
@@ -524,7 +371,7 @@
     <div id="smartSchedulerModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>🎯 Smart Schedule Creator (Admin/Manager Only)</h3>
+                <h3>🎯 Smart Schedule Creator (Admin Only)</h3>
                 <button class="close" onclick="closeModal('smartSchedulerModal')">&times;</button>
             </div>
             
@@ -594,7 +441,7 @@
     <div id="bulkSchedulerModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>📊 Bulk Schedule Creator (Admin/Manager Only)</h3>
+                <h3>📊 Bulk Schedule Creator (Admin Only)</h3>
                 <button class="close" onclick="closeModal('bulkSchedulerModal')">&times;</button>
             </div>
             
@@ -697,22 +544,6 @@
                 </div>
                 <button type="submit" class="btn">🚀 Apply Live Leave Request</button>
             </form>
-        </div>
-    </div>
-
-    <!-- Custom Timing Modal -->
-    <div id="customTimingModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>⏰ Custom Shift Timings</h3>
-                <button class="close" onclick="closeModal('customTimingModal')">&times;</button>
-            </div>
-            <div class="timing-editor">
-                <h4>Current Shift Timings:</h4>
-                <div class="timing-grid" id="customTimingGrid">
-                </div>
-            </div>
-            <button class="btn" onclick="saveCustomTimings()">💾 Save Live Timings</button>
         </div>
     </div>
 
