@@ -547,19 +547,24 @@
                     <h3>🌟 Choose Shift Timing</h3>
                     <div class="shift-options">
                         <div class="shift-card" onclick="selectShift('morning')" data-shift="morning">
-                            <span class="shift-icon">🌅</span>
+                            <span class="shift-icon"></span>
+                            <div class="shift-label">Early Morning Shift</div>
+                            <div class="shift-time">7:00 AM - 4:00 PM</div>
+                        </div>
+                        <div class="shift-card" onclick="selectShift('evening')" data-shift="evening">
+                            <span class="shift-icon"></span>
                             <div class="shift-label">Morning Shift</div>
                             <div class="shift-time">9:00 AM - 6:00 PM</div>
                         </div>
-                        <div class="shift-card" onclick="selectShift('evening')" data-shift="evening">
-                            <span class="shift-icon">🌆</span>
-                            <div class="shift-label">Evening Shift</div>
-                            <div class="shift-time">2:00 PM - 11:00 PM</div>
+                        <div class="shift-card" onclick="selectShift('night')" data-shift="night">
+                            <span class="shift-icon"></span>
+                            <div class="shift-label">Mid Shift</div>
+                            <div class="shift-time">10:00 AM - 7:00 PM</div>
                         </div>
                         <div class="shift-card" onclick="selectShift('night')" data-shift="night">
-                            <span class="shift-icon">🌙</span>
-                            <div class="shift-label">Night Shift</div>
-                            <div class="shift-time">11:00 PM - 8:00 AM</div>
+                            <span class="shift-icon"></span>
+                            <div class="shift-label">Afternoon Shift</div>
+                            <div class="shift-time">12:00 PM - 9:00 PM</div>
                         </div>
                         <div class="shift-card" onclick="selectShift('off')" data-shift="off">
                             <span class="shift-icon">🏠</span>
